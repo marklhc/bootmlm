@@ -8,6 +8,7 @@ var_blup <- function(L, RX, A, Lambdat, X) {
   # Matrix::rowSums(Q^2) + Matrix::colSums(tcrossprod(Q, A)^2)
 }
 
+#' @importFrom methods as
 get_reflate_b <- function(x) {
   # Extract required quantities from the S4 object
   PR <- x@pp
@@ -28,7 +29,8 @@ get_reflate_b <- function(x) {
     Vbstar[crossprod(Lambdat) == 0] <- 0
     Vbstar <- as(as(Vbstar, "symmetricMatrix"), "CsparseMatrix")
     R_Vbstar <- Matrix::chol(Vbstar)
-    bstar <- crossprod(Lambdat, solve(t(R_Vbstar), crossprod(Lambdat, u)))
+    bstar <- crossprod(Lambdat,
+                       Matrix::solve(t(R_Vbstar), crossprod(Lambdat, u)))
   }
   bstar
 }
