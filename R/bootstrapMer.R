@@ -11,7 +11,8 @@
 #' @param nsim Number of simulations, positive integer; the bootstrap B (or R).
 #' @param seed Optional argument to set.seed.
 #' @param type A character string indicating the type of multilevel bootstrap.
-#'   Possible values are "resid", "resid_cgr", or "resid_trans".
+#'   Currently, possible values are "parametric", "residual", "residual_cgr", or
+#'   "residual_trans".
 #' @param verbose Logical indicating if progress should print output
 #' @return An object of S3 class "boot", compatible with boot package's boot()
 #'   result. It contains the following components:
@@ -36,70 +37,76 @@
 #' }
 #' bootstrapMer(fm01ML, mySumm, type = "resid_trans", nsim = 100)
 bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
-                         type = c("resid", "resid_cgr", "resid_trans"),
+                         type = c("parametric", "residual", "residual_cgr",
+                                  "residual_trans"),
                          verbose = FALSE) {
-  if (!lme4::isLMM(x)) {
-    stop("currently only linear mixed model of class `merMod` is supported")
-  }
-  # if (!identical(x@optinfo$conv$lme4, list())) {
-  #   stop("The original model has convergence issue")
-  # }
-  stopifnot( (nsim <- as.integer(nsim[1])) > 0)
-  FUN <- match.fun(FUN)
   type <- match.arg(type)
-  if (!is.null(seed)) set.seed(seed)
-  # method <- match.arg(method)
-
-  t0 <- FUN(x)
-  if (!is.numeric(t0)) {
-    stop("currently only handles functions that return numeric vectors")
-  }
-
-  mle <- list(beta = x@beta, theta = x@theta)
-
-  # can use the switch function
-  if (type == "resid") {
-    ss <- .resid_resample(x, nsim)
-  } else if (type == "resid_trans") {
-    ss <- .resid_trans_resample(x, nsim)
-  } else if (type == "resid_cgr") {
-    ss <- .resid_cgr_resample(x, nsim)
-  }
-
-  ffun <- local({
-    FUN
-    refit
-    x
-    ss
-    verbose
-    length.t0 <- length(t0)
-    function(i) {
-      # ret <- tryCatch(FUN(refit.merMod2(x, ss[[i]],
-      #                                   control = lmerControl(
-      #                                     calc.derivs = calc.derivs))),
-      #                 error = function(e) e)
-      ret <- tryCatch(FUN(refit(x, ss[[i]])),
-                      error = function(e) e)
-      if (verbose) {
-        cat(sprintf("%5d :", i))
-        utils::str(ret)
-      }
-      if (inherits(ret, "error"))
-        structure(rep(NA, length.t0), fail.msgs = ret$message)
-      else ret
+  if (type == "parametric") {
+    return(lme4::bootMer(x, FUN, nsim, seed = seed, use.u = FALSE,
+                         type = "parametric", verbose = FALSE))
+  } else {
+    if (!lme4::isLMM(x)) {
+      stop("currently only linear mixed model of class `merMod` is supported")
     }
-  })
-  res <- lapply(seq_along(ss), ffun)
-  # t.star <- matrix(unlist(res), nsim, length(t0), byrow = TRUE)
-  # colnames(t.star) <- names(t0)
-  t.star <- do.call(rbind, res)
+    # if (!identical(x@optinfo$conv$lme4, list())) {
+    #   stop("The original model has convergence issue")
+    # }
+    stopifnot( (nsim <- as.integer(nsim[1])) > 0)
+    FUN <- match.fun(FUN)
+    if (!is.null(seed)) set.seed(seed)
 
-  # Number of failed bootstrap
+    t0 <- FUN(x)
+    if (!is.numeric(t0)) {
+      stop("currently only handles functions that return numeric vectors")
+    }
 
-  structure(list(t0 = t0, t = t.star, R = nsim, data = x@frame,
-                 seed = .Random.seed, statistic = FUN,
-                 sim = "parameteric", call = match.call(), ran.gen = NULL,
-                 mle = mle), class = "boot")
+    mle <- list(beta = x@beta, theta = x@theta)
+
+    # can use the switch function
+    if (type == "residual") {
+      ss <- .resid_resample(x, nsim)
+    } else if (type == "residual_trans") {
+      ss <- .resid_trans_resample(x, nsim)
+    } else if (type == "residual_cgr") {
+      ss <- .resid_cgr_resample(x, nsim)
+    }
+
+    ffun <- local({
+      FUN
+      refit
+      x
+      ss
+      verbose
+      length.t0 <- length(t0)
+      function(i) {
+        # ret <- tryCatch(FUN(refit.merMod2(x, ss[[i]],
+        #                                   control = lmerControl(
+        #                                     calc.derivs = calc.derivs))),
+        #                 error = function(e) e)
+        ret <- tryCatch(FUN(refit(x, ss[[i]])),
+                        error = function(e) e)
+        if (verbose) {
+          cat(sprintf("%5d :", i))
+          utils::str(ret)
+        }
+        if (inherits(ret, "error"))
+          structure(rep(NA, length.t0), fail.msgs = ret$message)
+        else ret
+      }
+    })
+    res <- lapply(seq_along(ss), ffun)
+    # t.star <- matrix(unlist(res), nsim, length(t0), byrow = TRUE)
+    # colnames(t.star) <- names(t0)
+    t.star <- do.call(rbind, res)
+
+    # Number of failed bootstrap
+
+    boo <- structure(list(t0 = t0, t = t.star, R = nsim, data = x@frame,
+                          seed = .Random.seed, statistic = FUN,
+                          sim = "parameteric", call = match.call(), ran.gen = NULL,
+                          mle = mle), class = "boot")
+  }
+  return(boo)
 }
 
 # pupcross <- haven::read_sas(
