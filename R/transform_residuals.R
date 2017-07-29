@@ -1,9 +1,11 @@
-var_blup <- function(u, L, RX, A, X) {
+var_blup <- function(L, RX, A, Lambdat, X) {
   q1 <- Matrix::solve(L, A)
   q2 <- X %*% Matrix::chol2inv(RX) %*% t(X)
   Q <- q1 + q1 %*% q2 %*% crossprod(A, q1) - q1 %*% q2
+  LambdaQ <- crossprod(Lambdat, Q)
+  tcrossprod(LambdaQ) + crossprod(tcrossprod(A, LambdaQ))
   # tcrossprod(Q) + crossprod(tcrossprod(A, Q))
-  Matrix::rowSums(Q^2) + Matrix::colSums(tcrossprod(Q, A)^2)
+  # Matrix::rowSums(Q^2) + Matrix::colSums(tcrossprod(Q, A)^2)
 }
 
 get_reflate_b <- function(x) {
@@ -19,12 +21,16 @@ get_reflate_b <- function(x) {
 
   # Hat matrix for u
   if (all(u == 0)) {  # may break down when variance is 0 for just one component
-    ustar <- u
+    bstar <- u
   } else {
-    Vu <- var_blup(u, L, RX, A, X)
-    ustar <- u / sqrt(Vu)
+    Vb <- var_blup(L, RX, A, Lambdat, X)
+    Vbstar <- Vb
+    Vbstar[crossprod(Lambdat) == 0] <- 0
+    Vbstar <- as(as(Vbstar, "symmetricMatrix"), "CsparseMatrix")
+    R_Vbstar <- Matrix::chol(Vbstar)
+    bstar <- crossprod(Lambdat, solve(t(R_Vbstar), crossprod(Lambdat, u)))
   }
-  crossprod(Lambdat, ustar)
+  bstar
 }
 
 get_reflate_e <- function(x) {
