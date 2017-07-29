@@ -52,38 +52,12 @@
 
   # Extract required quantities from the S4 object
   PR <- x@pp
-
   Zt <- PR$Zt
-  Lambdat <- PR$Lambdat
   X <- unname(PR$X)
   fixed <- X %*% x@beta
-  u <- x@u
-  b <- Matrix::crossprod(Lambdat, u)
 
-  Js <- lme4::ngrps(x)
-  qs <- lengths(x@cnms)
-  sigma_x <- sigma(x)
-
-  LR <- lme4::vec2mlist(x@theta, n = qs, symm = FALSE)
-
-  # Hat matrix for u
-  if (all(u == 0)) {  # may break down when variance is 0 for just one component
-    ml <- lapply(seq_along(b_lst), function(i) {
-      matrix(0, nrow = qs[i], ncol = Js[i])
-    })
-  } else {
-    nqs <- Js * qs
-    nqseq <- rep.int(seq_along(nqs), nqs)
-
-    b_lst <- split(b, nqseq)
-    ml <- lapply(seq_along(b_lst), function(i) {
-      b_mat <- matrix(b_lst[[i]], nrow = qs[i])
-      LS <- t(Matrix::chol(tcrossprod(b_mat - rowMeans(b_mat)) / Js[i]))
-      LR[[i]] %*% Matrix::solve(LS, b_mat) * sigma_x
-    })
-  }
-  estar <- resid(x)
-  estar <- estar / sd(estar) * sigma_x
+  ml <- get_reflate_b_cgr(x)
+  estar <- get_reflate_e_cgr(x)
 
   replicate(nsim, {
     bstar_new <- unlist(lapply(ml, function(m) {
@@ -95,7 +69,8 @@
   simplify = FALSE)
 }
 
-.resid_trans_resample <- function(x, nsim = 1, seed = NULL) {
+.resid_trans_resample <- function(x, nsim = 1, seed = NULL,
+                                  corrected = FALSE) {
   # transform residuals to be independent
   if (!is.null(seed)) {
     set.seed(seed)
@@ -107,23 +82,25 @@
 
   # Extract required quantities from the S4 object
   PR <- x@pp
-  RX <- PR$RX()
-  A <- unname(PR$Lambdat %*% PR$Zt)
-  X <- unname(PR$X)
+  X <- PR$X
   fixed <- X %*% x@beta
-  nobs_x <- nobs(x)
 
   # Transform residuals
   r <- x@resp$y - fixed  # the variance of r may not be V
-  I <- diag(nobs_x)
-  V <- crossprod(A) + I
-  var_r <- (V - X %*% Matrix::chol2inv(RX) %*% t(X)) * (V != 0)
-  R <- Matrix::chol(var_r)
-  Zeta <- Matrix::solve(t(R), r)
-  Zeta_c <- Zeta - mean(Zeta)
+  V <- get_V(x)
+  # var_r <- (V - X %*% Matrix::chol2inv(RX) %*% t(X)) * (V != 0)
+  R <- Matrix::chol(V)
+  if (corrected) {
+    RX <- PR$RX()
+    Vr <- (V - X %*% Matrix::chol2inv(RX) %*% t(X)) * (V != 0)
+    Rr <- Matrix::chol(Vr)
+    Zeta <- get_zeta(r, Vr)
+  } else {
+    Zeta <- get_zeta(r, R)  # can use a corrected version
+  }
 
   replicate(nsim, {
-    as.vector(fixed + crossprod(R, sample(Zeta_c, replace = TRUE)))
+    as.vector(fixed + crossprod(R, sample(Zeta, replace = TRUE)))
   },
   simplify = FALSE)
 }
