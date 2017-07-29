@@ -16,7 +16,8 @@ Imports:
     stats, 
     utils
 Suggests:
-    nlme
+    nlme,
+    testthat
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

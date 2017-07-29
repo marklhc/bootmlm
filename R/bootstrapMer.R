@@ -35,7 +35,7 @@
 #' mySumm <- function(x) {
 #'   c(getME(x, "beta"), sigma(x))
 #' }
-#' bootstrapMer(fm01ML, mySumm, type = "resid_trans", nsim = 100)
+#' bootstrapMer(fm01ML, mySumm, type = "residual", nsim = 100)
 bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
                          type = c("parametric", "residual", "residual_cgr",
                                   "residual_trans"),

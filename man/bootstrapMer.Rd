@@ -4,8 +4,8 @@
 \alias{bootstrapMer}
 \title{Run Various Bootstrap for Mixed Models.}
 \usage{
-bootstrapMer(x, FUN, nsim = 1, seed = NULL, type = c("resid", "resid_cgr",
-  "resid_trans"), verbose = FALSE)
+bootstrapMer(x, FUN, nsim = 1, seed = NULL, type = c("parametric",
+  "residual", "residual_cgr", "residual_trans"), verbose = FALSE)
 }
 \arguments{
 \item{x}{A fitted merMod object from lmer.}
@@ -18,7 +18,8 @@ the statistic of interest, which must be a (possibly named) numeric vector.}
 \item{seed}{Optional argument to set.seed.}
 
 \item{type}{A character string indicating the type of multilevel bootstrap.
-Possible values are "resid", "resid_cgr", or "resid_trans".}
+Currently, possible values are "parametric", "residual", "residual_cgr", or
+"residual_trans".}
 
 \item{verbose}{Logical indicating if progress should print output}
 }
@@ -47,7 +48,7 @@ fm01ML <- lmer(Yield ~ (1 | Batch), Dyestuff, REML = FALSE)
 mySumm <- function(x) {
   c(getME(x, "beta"), sigma(x))
 }
-bootstrapMer(fm01ML, mySumm, type = "resid_trans", nsim = 100)
+bootstrapMer(fm01ML, mySumm, type = "residual", nsim = 100)
 }
 \seealso{
 \code{\link[boot]{boot}} for single-level bootstrapping,

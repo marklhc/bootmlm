@@ -1,5 +1,5 @@
 #' @importFrom Matrix crossprod tcrossprod t mean
-#' @importFrom stats nobs resid runif sd sigma
+#' @importFrom stats nobs resid runif sd sigma hatvalues model.matrix
 .resid_resample <- function(x, nsim = 1, seed = NULL) {
   # residual bootstrap
   if (!is.null(seed)) {
@@ -12,54 +12,30 @@
 
   # Extract required quantities from the S4 object
   PR <- x@pp
-  rsp <- x@resp
-  L <- PR$L()
-  RX <- PR$RX()
-  RZX <- PR$RZX
-  Lambdat <- PR$Lambdat
-  # Zt <- PR$Zt
-  # A <- unname(Lambdat %*% Zt)
-  A <- unname(Lambdat %*% PR$Zt)
-  X <- unname(PR$X)
+  Zt <- PR$Zt
+  X <- PR$X
   fixed <- X %*% x@beta
-  u <- x@u
 
   Js <- lme4::ngrps(x)
-  # Jseq <- seq_along(Js)
   qs <- lengths(x@cnms)
   nqs <- Js * qs
   nqseq <- rep.int(seq_along(nqs), nqs)
 
-  # Hat matrix for u
-  if (all(u == 0)) {  # may break down when variance is 0 for just one component
-    ustar <- u
-  } else {
-    I <- diag(sum(nqs))
-    Vu <- I - tcrossprod(
-      Matrix::solve(L, cbind(I, t(Matrix::solve(t(RX), t(RZX)))),
-                    system = "Lt")
-    )
-    ustar <- u / sqrt(Matrix::diag(Vu))
-  }
-  ustar_lst <- split(ustar, nqseq)
-  ml <- lapply(seq_along(ustar_lst),
+  bstar <- get_reflate_b(x)
+  bstar_lst <- split(bstar, nqseq)
+  ml <- lapply(seq_along(bstar_lst),
                # easier to work with the transposed version
-               function(i) matrix(ustar_lst[[i]], nrow = qs[i]))
+               function(i) matrix(bstar_lst[[i]], nrow = qs[i]))
 
-  # Hat matrix for e
-  CL <- Matrix::solve(L, A, system = "L")
-  CR <- Matrix::solve(t(RX), t(X) - crossprod(RZX, CL))
-  hatvalues <- Matrix::colSums(CR^2) + Matrix::colSums(CL^2)
-  estar <- (rsp$y - rsp$mu) / sqrt(1 - hatvalues)
+  estar <- get_reflate_e(x)
 
   replicate(nsim, {
     # faster!, and easier to read
-    ustar_new <- unlist(lapply(ml, function(m) {
+    bstar_new <- unlist(lapply(ml, function(m) {
       m[ , sample.int(ncol(m), replace = TRUE)]
     }))
 
-    as.vector(
-      fixed + crossprod(A, ustar_new) + sample(estar, replace = TRUE))
+    as.vector(fixed + crossprod(Zt, bstar_new) + sample(estar, replace = TRUE))
   },
   simplify = FALSE)
 }
