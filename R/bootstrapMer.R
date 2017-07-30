@@ -3,7 +3,7 @@
 #' Run multilevel bootstrap with three options
 #'
 #' \code{bootstrapMer} performs different bootstrapping methods to fitted
-#' model objects using the lme4 package. Currently, only models with fitted
+#' model objects using the lme4 package. Currently, only models fitted
 #' using \code{\link[lme4]{lmer}} is supported.
 #' @param x A fitted merMod object from lmer.
 #' @param FUN A function taking a fitted merMod object as input and returning
@@ -11,11 +11,16 @@
 #' @param nsim Number of simulations, positive integer; the bootstrap B (or R).
 #' @param seed Optional argument to set.seed.
 #' @param type A character string indicating the type of multilevel bootstrap.
-#'   Currently, possible values are "parametric", "residual", "residual_cgr", or
-#'   "residual_trans".
+#'   Currently, possible values are "parametric", "residual", "residual_cgr",
+#'   "residual_trans", or "case".
+#' @param lv1_sample Logical indicating whether to sample with replacement
+#'   the level-1 units for each level-2 cluster. Only used for
+#'   \code{type = "case"}. Default is \code{FALSE}.
+#' @param .progress Logical indicating whether to display progressbar (using
+#'   \code{\link[utils]{txtProgressBar}}).
 #' @param verbose Logical indicating if progress should print output
-#' @return An object of S3 class "boot", compatible with boot package's boot()
-#'   result. It contains the following components:
+#' @return An object of S3 class "boot", compatible with \pkg{boot} package's
+#'   \code{\link[boot]{boot}()}. It contains the following components:
 #'
 #'   \item{t0}{The original statistic from \code{FUN(x)}.}
 #'   \item{t}{A matrix with \code{nsim} rows containing the bootstrap
@@ -27,6 +32,8 @@
 #'   implemented in lme4, and \code{\link[boot]{boot.ci}} for getting
 #'   bootstrap confidence intervals.
 #' @importFrom lme4 refit
+#' @importFrom stats formula
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 #' @examples
 #' library(lme4)
@@ -35,10 +42,11 @@
 #' mySumm <- function(x) {
 #'   c(getME(x, "beta"), sigma(x))
 #' }
-#' bootstrapMer(fm01ML, mySumm, type = "residual", nsim = 100)
+#' boo01 <- bootstrapMer(fm01ML, mySumm, type = "residual", nsim = 100)
 bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
                          type = c("parametric", "residual", "residual_cgr",
-                                  "residual_trans"),
+                                  "residual_trans", "case"),
+                         lv1_resample = FALSE, .progress = FALSE,
                          verbose = FALSE) {
   type <- match.arg(type)
   if (type == "parametric") {
@@ -52,6 +60,9 @@ bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
     #   stop("The original model has convergence issue")
     # }
     stopifnot( (nsim <- as.integer(nsim[1])) > 0)
+    if (.progress) {
+      pb <- txtProgressBar(style = 3)
+    }
     FUN <- match.fun(FUN)
     if (!is.null(seed)) set.seed(seed)
 
@@ -60,36 +71,62 @@ bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
       stop("currently only handles functions that return numeric vectors")
     }
 
-    mle <- list(beta = x@beta, theta = x@theta)
-
     # can use the switch function
     if (type %in% c("residual", "residual_cgr", "residual_trans")) {
+      mle <- list(beta = x@beta, theta = x@theta)
+      out <- list(sim = "parametric", ran.gen = NULL, mle = mle)
       ss <- .resid_resample(x, nsim, type = type)
+      ffun <- local({
+        FUN
+        refit
+        x
+        ss
+        verbose
+        length_t0 <- length(t0)
+        function(i) {
+          ret <- tryCatch(FUN(refit(x, ss[[i]])),
+                          error = function(e) e)
+          if (verbose) {
+            cat(sprintf("%5d :", i))
+            utils::str(ret)
+          }
+          if (.progress) {
+            setTxtProgressBar(pb, i / nsim)
+          }
+          if (inherits(ret, "error"))
+            structure(rep(NA, length_t0), fail.msgs = ret$message)
+          else ret
+        }
+      })
+    } else if (type == "case") {
+      out <- list(sim = "ordinary", strata = rep(1, nobs(x)))
+      ss <- .case_resample(x, nsim, lv1_resample = lv1_resample)
+      ffun <- local({
+        FUN
+        formula_x <- formula(x)
+        ss
+        verbose
+        length_t0 <- length(t0)
+        use_REML <- as.logical(lme4::getME(x, "REML"))
+        function(i) {
+          df_i <- ss[[i]]
+          ret <- tryCatch(FUN(lmer(formula_x, data = df_i, REML = use_REML,
+                                   control = lmerControl(calc.derivs = FALSE))),
+                          error = function(e) e)
+          if (verbose) {
+            cat(sprintf("%5d :", i))
+            utils::str(ret)
+          }
+          if (.progress) {
+            setTxtProgressBar(pb, i / nsim)
+          }
+          if (inherits(ret, "error"))
+            structure(rep(NA, length_t0), fail.msgs = ret$message)
+          else ret
+        }
+      })
     }
 
-    ffun <- local({
-      FUN
-      refit
-      x
-      ss
-      verbose
-      length.t0 <- length(t0)
-      function(i) {
-        # ret <- tryCatch(FUN(refit.merMod2(x, ss[[i]],
-        #                                   control = lmerControl(
-        #                                     calc.derivs = calc.derivs))),
-        #                 error = function(e) e)
-        ret <- tryCatch(FUN(refit(x, ss[[i]])),
-                        error = function(e) e)
-        if (verbose) {
-          cat(sprintf("%5d :", i))
-          utils::str(ret)
-        }
-        if (inherits(ret, "error"))
-          structure(rep(NA, length.t0), fail.msgs = ret$message)
-        else ret
-      }
-    })
     res <- lapply(seq_along(ss), ffun)
     # t.star <- matrix(unlist(res), nsim, length(t0), byrow = TRUE)
     # colnames(t.star) <- names(t0)
@@ -97,10 +134,9 @@ bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
 
     # Number of failed bootstrap
 
-    boo <- structure(list(t0 = t0, t = t.star, R = nsim, data = x@frame,
-                          seed = .Random.seed, statistic = FUN,
-                          sim = "parameteric", call = match.call(),
-                          ran.gen = NULL, mle = mle),
+    boo <- structure(c(list(t0 = t0, t = t.star, R = nsim, data = x@frame,
+                            seed = .Random.seed, statistic = FUN,
+                            call = match.call()), out),
                      class = "boot")
   }
   return(boo)

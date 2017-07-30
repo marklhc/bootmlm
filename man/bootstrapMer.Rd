@@ -5,7 +5,8 @@
 \title{Run Various Bootstrap for Mixed Models.}
 \usage{
 bootstrapMer(x, FUN, nsim = 1, seed = NULL, type = c("parametric",
-  "residual", "residual_cgr", "residual_trans"), verbose = FALSE)
+  "residual", "residual_cgr", "residual_trans", "case"), lv1_resample = FALSE,
+  .progress = FALSE, verbose = FALSE)
 }
 \arguments{
 \item{x}{A fitted merMod object from lmer.}
@@ -18,14 +19,21 @@ the statistic of interest, which must be a (possibly named) numeric vector.}
 \item{seed}{Optional argument to set.seed.}
 
 \item{type}{A character string indicating the type of multilevel bootstrap.
-Currently, possible values are "parametric", "residual", "residual_cgr", or
-"residual_trans".}
+Currently, possible values are "parametric", "residual", "residual_cgr",
+"residual_trans", or "case".}
+
+\item{.progress}{Logical indicating whether to display progressbar (using
+\code{\link[utils]{txtProgressBar}}).}
 
 \item{verbose}{Logical indicating if progress should print output}
+
+\item{lv1_sample}{Logical indicating whether to sample with replacement
+the level-1 units for each level-2 cluster. Only used for
+\code{type = "case"}. Default is \code{FALSE}.}
 }
 \value{
-An object of S3 class "boot", compatible with boot package's boot()
-  result. It contains the following components:
+An object of S3 class "boot", compatible with \pkg{boot} package's
+  \code{\link[boot]{boot}()}. It contains the following components:
 
   \item{t0}{The original statistic from \code{FUN(x)}.}
   \item{t}{A matrix with \code{nsim} rows containing the bootstrap
@@ -48,7 +56,7 @@ fm01ML <- lmer(Yield ~ (1 | Batch), Dyestuff, REML = FALSE)
 mySumm <- function(x) {
   c(getME(x, "beta"), sigma(x))
 }
-bootstrapMer(fm01ML, mySumm, type = "residual", nsim = 100)
+boo01 <- bootstrapMer(fm01ML, mySumm, type = "residual", nsim = 100)
 }
 \seealso{
 \code{\link[boot]{boot}} for single-level bootstrapping,

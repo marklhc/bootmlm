@@ -73,6 +73,50 @@
   ss
 }
 
+case_newsample1 <- function(data, N, group, uniq_gp, gp_length, fname) {
+  new_index2 <- c(sample(uniq_gp, replace = TRUE))
+  new_index1 <- lapply(new_index2, function(i) seq_len(N)[group == i])
+  group_length <- gp_length[new_index2]
+  new_group <- rep(seq_along(new_index2), group_length)
+  new_data <- data[unlist(new_index1), , drop = FALSE]
+  new_data[fname] <- new_group
+  rownames(new_data) <- NULL
+  new_data
+}
+
+case_newsample2 <- function(data, N, group, uniq_gp, gp_length, fname) {
+  new_index2 <- c(sample(uniq_gp, replace = TRUE))
+  new_index1 <- lapply(new_index2,
+                       function(i) sample(seq_len(N)[group == i],
+                                          replace = TRUE))
+  group_length <- gp_length[new_index2]
+  new_group <- rep(seq_along(new_index2), group_length)
+  new_data <- data[unlist(new_index1), , drop = FALSE]
+  new_data[fname] <- new_group
+  rownames(new_data) <- NULL
+  new_data
+}
+
+.case_resample <- function(x, nsim = 1, seed = NULL,
+                           lv1_resample = FALSE) {
+  group <- as.numeric(x@flist[[1]])
+  uniq_gp <- unique(group)
+  gp_length <- unname(table(group))
+  N <- nobs(x)
+  org_data <- x@frame
+  fname <- names(x@flist[1])
+
+  if (!lv1_resample) {
+    resample_fun <- case_newsample1
+  } else {
+    resample_fun <- case_newsample2
+  }
+  ss <- replicate(nsim,
+                  resample_fun(org_data, N, group, uniq_gp, gp_length, fname),
+                  simplify = FALSE)
+  ss
+}
+
 # .resid_cgr_resample <- function(x, nsim = 1, seed = NULL) {
 #   # reflate residuals
 #   if (!is.null(seed)) {

@@ -14,6 +14,18 @@ test_that(".resid_resample() gives correct output length", {
   expect_output(str(boo3), "num [1:180]", fixed = TRUE)
 })
 
+test_that(".case_resample() gives correct output type", {
+  boo1 <- .case_resample(m1, nsim = 3, seed = 123, lv1_resample = FALSE)
+  boo2 <- .case_resample(m1, nsim = 2, seed = 123, lv1_resample = TRUE)
+
+  expect_output(str(boo1), "List of 3")
+  expect_output(str(boo1), "180 obs")
+  expect_output(str(boo2), "List of 2")
+  expect_output(str(boo2), "3 variables")
+  expect_false(identical(boo1[1], boo1[2]))
+  expect_false(identical(boo1[1:2], boo2))
+})
+
 test_that(".resid_resample() gives distinct resamples", {
   boo1 <- .resid_resample(m1, nsim = 2, seed = 122, type = "residual")
   boo2 <- .resid_resample(m1, nsim = 3, seed = 122, type = "residual")
