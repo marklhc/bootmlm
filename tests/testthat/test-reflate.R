@@ -1,8 +1,8 @@
-# traditional representation of BLUP
 library(nlme)
 library(lme4)
+
+# traditional representation of BLUP
 bstar_trad <- function(x) {
-  y <- getME(x, "y")
   b <- getME(x, "b")
   Zt <- getME(x, "Zt")
   Lambdat <- getME(x, "Lambdat")

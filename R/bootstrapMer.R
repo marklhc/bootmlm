@@ -63,12 +63,8 @@ bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
     mle <- list(beta = x@beta, theta = x@theta)
 
     # can use the switch function
-    if (type == "residual") {
-      ss <- .resid_resample(x, nsim)
-    } else if (type == "residual_trans") {
-      ss <- .resid_trans_resample(x, nsim)
-    } else if (type == "residual_cgr") {
-      ss <- .resid_cgr_resample(x, nsim)
+    if (type %in% c("residual", "residual_cgr", "residual_trans")) {
+      ss <- .resid_resample(x, nsim, type = type)
     }
 
     ffun <- local({
@@ -103,8 +99,9 @@ bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
 
     boo <- structure(list(t0 = t0, t = t.star, R = nsim, data = x@frame,
                           seed = .Random.seed, statistic = FUN,
-                          sim = "parameteric", call = match.call(), ran.gen = NULL,
-                          mle = mle), class = "boot")
+                          sim = "parameteric", call = match.call(),
+                          ran.gen = NULL, mle = mle),
+                     class = "boot")
   }
   return(boo)
 }

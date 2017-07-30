@@ -19,7 +19,7 @@ get_V <- function(x) {
 get_reflate_b <- function(x) {
   # Extract required quantities from the S4 object
   PR <- x@pp
-  rsp <- x@resp
+  # rsp <- x@resp
   L <- PR$L()
   RX <- PR$RX()
   Lambdat <- PR$Lambdat
