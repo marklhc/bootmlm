@@ -27,6 +27,11 @@ get_reflate_b <- function(x) {
   X <- model.matrix(x)
   u <- x@u
 
+  Js <- lme4::ngrps(x)
+  qs <- lengths(x@cnms)
+  nqs <- Js * qs
+  nqseq <- rep.int(seq_along(nqs), nqs)
+
   # Hat matrix for u
   if (all(u == 0)) {  # may break down when variance is 0 for just one component
     bstar <- u
@@ -39,7 +44,11 @@ get_reflate_b <- function(x) {
     bstar <- crossprod(Lambdat,
                        Matrix::solve(t(R_Vbstar), crossprod(Lambdat, u)))
   }
-  bstar
+  bstar_lst <- split(bstar, nqseq)
+  ml <- lapply(seq_along(bstar_lst),
+               # easier to work with the transposed version
+               function(i) matrix(bstar_lst[[i]], nrow = qs[i]))
+  return(ml)
 }
 
 get_reflate_e <- function(x) {

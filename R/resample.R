@@ -16,17 +16,18 @@
   X <- PR$X
   fixed <- X %*% x@beta
 
-  Js <- lme4::ngrps(x)
-  qs <- lengths(x@cnms)
-  nqs <- Js * qs
-  nqseq <- rep.int(seq_along(nqs), nqs)
+  # Js <- lme4::ngrps(x)
+  # qs <- lengths(x@cnms)
+  # nqs <- Js * qs
+  # nqseq <- rep.int(seq_along(nqs), nqs)
+  #
+  # bstar <- get_reflate_b(x)
+  # bstar_lst <- split(bstar, nqseq)
+  # ml <- lapply(seq_along(bstar_lst),
+  #              # easier to work with the transposed version
+  #              function(i) matrix(bstar_lst[[i]], nrow = qs[i]))
 
-  bstar <- get_reflate_b(x)
-  bstar_lst <- split(bstar, nqseq)
-  ml <- lapply(seq_along(bstar_lst),
-               # easier to work with the transposed version
-               function(i) matrix(bstar_lst[[i]], nrow = qs[i]))
-
+  ml <- get_reflate_b(x)
   estar <- get_reflate_e(x)
 
   replicate(nsim, {
