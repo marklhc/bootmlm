@@ -15,6 +15,18 @@ get_V <- function(x) {
   crossprod(A) + I
 }
 
+#' Get the square root of a matrix using Eigen decomposition, and solve
+#' for a linear system
+solve_eigen_sqrt <- function(M, b) {
+  ei <- eigen(M)
+  d <- ei$values
+  dsqrtinv <- 1 / sqrt(d)
+  dsqrtinv[d <= 0] = 0
+  V <- ei$vectors
+  Msqrtinv <- V %*% diag(dsqrtinv) %*% t(V)
+  Msqrtinv %*% b
+}
+
 #' @importFrom methods as
 get_reflate_b <- function(x) {
   # Extract required quantities from the S4 object
@@ -33,14 +45,15 @@ get_reflate_b <- function(x) {
   nqseq <- rep.int(seq_along(nqs), nqs)
 
   # Hat matrix for u
-  if (all(u == 0)) {  # may break down when variance is 0 for just one component
-    bstar <- u
+  Vb <- var_blup(L, RX, A, Lambdat, X)
+  Vbstar <- Vb
+  Vbstar[crossprod(Lambdat) == 0] <- 0
+  Vbstar <- as(as(Vbstar, "symmetricMatrix"), "CsparseMatrix")
+  R_Vbstar <- try(Matrix::chol(Vbstar), silent = TRUE)
+  if (inherits(R_Vbstar, "try-error")) {
+    bstar <- crossprod(Lambdat,
+                       solve_eigen_sqrt(Vbstar, crossprod(Lambdat, u)))
   } else {
-    Vb <- var_blup(L, RX, A, Lambdat, X)
-    Vbstar <- Vb
-    Vbstar[crossprod(Lambdat) == 0] <- 0
-    Vbstar <- as(as(Vbstar, "symmetricMatrix"), "CsparseMatrix")
-    R_Vbstar <- Matrix::chol(Vbstar)
     bstar <- crossprod(Lambdat,
                        Matrix::solve(t(R_Vbstar), crossprod(Lambdat, u)))
   }

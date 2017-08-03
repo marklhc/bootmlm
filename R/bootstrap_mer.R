@@ -1,8 +1,9 @@
 #' Run Various Bootstrap for Mixed Models.
 #'
-#' Run multilevel bootstrap with three options
+#' Run multilevel parametric, residual, and case bootstrap with different
+#'   options
 #'
-#' \code{bootstrapMer} performs different bootstrapping methods to fitted
+#' \code{bootstrap_mer} performs different bootstrapping methods to fitted
 #' model objects using the lme4 package. Currently, only models fitted
 #' using \code{\link[lme4]{lmer}} is supported.
 #' @param x A fitted merMod object from lmer.
@@ -13,7 +14,7 @@
 #' @param type A character string indicating the type of multilevel bootstrap.
 #'   Currently, possible values are "parametric", "residual", "residual_cgr",
 #'   "residual_trans", or "case".
-#' @param lv1_sample Logical indicating whether to sample with replacement
+#' @param lv1_resample Logical indicating whether to sample with replacement
 #'   the level-1 units for each level-2 cluster. Only used for
 #'   \code{type = "case"}. Default is \code{FALSE}.
 #' @param .progress Logical indicating whether to display progressbar (using
@@ -31,23 +32,30 @@
 #'   \code{\link[lme4]{bootMer}} for parametric and semi-parametric bootstrap
 #'   implemented in lme4, and \code{\link[boot]{boot.ci}} for getting
 #'   bootstrap confidence intervals.
-#' @importFrom lme4 refit
+#' @importFrom lme4 refit lmer lmerControl
 #' @importFrom stats formula
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 #' @examples
 #' library(lme4)
 #' fm01ML <- lmer(Yield ~ (1 | Batch), Dyestuff, REML = FALSE)
-#' # mathematically correct residual bootstrap
 #' mySumm <- function(x) {
 #'   c(getME(x, "beta"), sigma(x))
 #' }
-#' boo01 <- bootstrapMer(fm01ML, mySumm, type = "residual", nsim = 100)
-bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
-                         type = c("parametric", "residual", "residual_cgr",
-                                  "residual_trans", "case"),
-                         lv1_resample = FALSE, .progress = FALSE,
-                         verbose = FALSE) {
+#' # Covariance preserving residual bootstrap
+#' boo01 <- bootstrap_mer(fm01ML, mySumm, type = "residual", nsim = 100)
+#' # Plot bootstrap distribution of fixed effect
+#' library(boot)
+#' plot(boo01, index = 1)
+#' # Get confidence interval
+#' boot.ci(boo01, index = 2, type = c("norm", "basic", "perc"))
+#' # BCa using influence values computed from `empinf_`
+#' boot.ci(boo01, index = 2, type = "bca", L = empinf_mer(fm01ML, mySumm, 2))
+bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
+                          type = c("parametric", "residual", "residual_cgr",
+                                   "residual_trans", "case"),
+                          lv1_resample = FALSE, .progress = FALSE,
+                          verbose = FALSE) {
   type <- match.arg(type)
   if (type == "parametric") {
     return(lme4::bootMer(x, FUN, nsim, seed = seed, use.u = FALSE,
@@ -64,7 +72,8 @@ bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
       pb <- txtProgressBar(style = 3)
     }
     FUN <- match.fun(FUN)
-    if (!is.null(seed)) set.seed(seed)
+    # if (!is.null(seed)) set.seed(seed)
+    if (!missing(seed)) set.seed(seed)
 
     t0 <- FUN(x)
     if (!is.numeric(t0)) {
@@ -110,9 +119,10 @@ bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
         use_REML <- as.logical(lme4::getME(x, "REML"))
         function(i) {
           df_i <- ss[[i]]
-          ret <- tryCatch(FUN(lmer(formula_x, data = df_i, REML = use_REML,
-                                   control = lmerControl(calc.derivs = FALSE))),
-                          error = function(e) e)
+          ret <- tryCatch(
+            FUN(lmer(formula_x, data = df_i, REML = use_REML,
+                     control = lmerControl(calc.derivs = FALSE))),
+            error = function(e) e)
           if (verbose) {
             cat(sprintf("%5d :", i))
             utils::str(ret)
@@ -148,9 +158,9 @@ bootstrapMer <- function(x, FUN, nsim = 1, seed = NULL,
 # library(lme4)
 # x <- lmer(ACHIEV ~ PUPSEX + PUPSES + (PUPSES | PSCHOOL) + (1 | SSCHOOL),
 #           data = pupcross)
-# boo1 <- bootstrapMer(x, function(x) x@theta * sigma(x), type = "resid",
-#                      nsim = 1000)
-# boo2 <- bootstrapMer(x, function(x) x@theta * sigma(x), type = "resid_trans",
-#                      nsim = 1000)
-# boo3 <- bootstrapMer(x, function(x) x@theta * sigma(x), type = "resid_cgr",
-#                      nsim = 1000)
+# boo1 <- bootstrap_mer(x, function(x) x@theta * sigma(x), type = "resid",
+#                       nsim = 1000)
+# boo2 <- bootstrap_mer(x, function(x) x@theta * sigma(x), type = "resid_trans",
+#                       nsim = 1000)
+# boo3 <- bootstrap_mer(x, function(x) x@theta * sigma(x), type = "resid_cgr",
+#                       nsim = 1000)

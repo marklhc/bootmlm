@@ -6,7 +6,8 @@
                             corrected = FALSE) {
   type <- match.arg(type)
   # residual bootstrap
-  if (!is.null(seed)) {
+  # if (!is.null(seed)) {
+  if (!missing(seed)) {
     set.seed(seed)
   }
   if (!exists(".Random.seed", envir = .GlobalEnv)) {
@@ -99,6 +100,13 @@ case_newsample2 <- function(data, N, group, uniq_gp, gp_length, fname) {
 
 .case_resample <- function(x, nsim = 1, seed = NULL,
                            lv1_resample = FALSE) {
+  # if (!is.null(seed)) {
+  if (!missing(seed)) {
+    set.seed(seed)
+  }
+  if (!exists(".Random.seed", envir = .GlobalEnv)) {
+    runif(1)
+  }
   group <- as.numeric(x@flist[[1]])
   uniq_gp <- unique(group)
   gp_length <- unname(table(group))
