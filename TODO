@@ -1,0 +1,2 @@
+1. Need error handling for transforming residual bootstrap with
+`corrected = TRUE` when cholesky failed.
