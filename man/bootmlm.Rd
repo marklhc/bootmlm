@@ -6,8 +6,8 @@
 \alias{bootmlm-package}
 \title{bootmlm: A package for bootstrap resampling with multilevel data.}
 \description{
-The bootmlm package provides the function bootstrapMer, which performs
-various parametric, residual, and case bootstrap resampling for
+The bootmlm package provides the function \code{bootstrap_mer}, which
+performs various parametric, residual, and case bootstrap resampling for
 fitted model objects with the lme4 package.
 }
 \section{Parametric bootstrap}{

@@ -25,7 +25,7 @@ This function calculates the empirical influence values for a statistic in
   a given fitted data object using the delete-\eqn{m_j} jackknife.
 }
 \details{
-\code{empinf_mer} computes non-parameteric influence function of models
+\code{empinf_mer} computes non-parametric influence function of models
 fitted using \code{\link[lme4]{lmer}} by deleting one cluster at a time. See
 van der Leeden, Meijer, and Busing (2008, pp. 420--422) for more information.
 }

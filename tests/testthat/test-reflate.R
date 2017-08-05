@@ -3,12 +3,12 @@ library(lme4)
 
 # traditional representation of BLUP
 bstar_trad <- function(x) {
-  b <- getME(x, "b")
-  Zt <- getME(x, "Zt")
-  Lambdat <- getME(x, "Lambdat")
+  b <- lme4::getME(x, "b")
+  Zt <- lme4::getME(x, "Zt")
+  Lambdat <- lme4::getME(x, "Lambdat")
   D <- crossprod(Lambdat)
   X <- model.matrix(x)
-  V <- crossprod(getME(x, "A")) + diag(ncol(Zt))
+  V <- crossprod(lme4::getME(x, "A")) + diag(ncol(Zt))
   VinvX <- Matrix::solve(V, X)
   Vb <- D %*% Zt %*% Matrix::solve(V, crossprod(Zt, D)) -
     D %*% Zt %*% VinvX %*% Matrix::solve(crossprod(X, VinvX),
@@ -53,4 +53,13 @@ test_that("get_reflate_b_cgr() gives reflated residuals", {
 
   expect_equivalent(m1_bvc, VarCorr(m1)[[1]])
   expect_equivalent(m2_bvc, VarCorr(m2))
+})
+
+test_that("solve_eigen_sqrt() gives correct result", {
+  x <- MASS::mvrnorm(10, mu = c(0, 0, 0),
+                     Sigma = matrix(c(1.5, 0.25, -0.2,
+                                      0.25, 0.9, 0.02,
+                                      -0.2, 0.02, 0.45), nrow = 3))
+  M <- var(x)
+  expect_equal(tcrossprod(solve_eigen_sqrt(M, M)), M)
 })
