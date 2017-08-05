@@ -6,22 +6,28 @@
 #' \code{bootstrap_mer} performs different bootstrapping methods to fitted
 #' model objects using the lme4 package. Currently, only models fitted
 #' using \code{\link[lme4]{lmer}} is supported.
-#' @param x A fitted merMod object from lmer.
-#' @param FUN A function taking a fitted merMod object as input and returning
-#'   the statistic of interest, which must be a (possibly named) numeric vector.
-#' @param nsim Number of simulations, positive integer; the bootstrap B (or R).
-#' @param seed Optional argument to set.seed.
+#' @param x A fitted \code{merMod} object from \code{\link[lme4]{lmer}}.
+#' @param FUN A function taking a fitted \code{merMod} object as input and
+#'   returning the statistic of interest, which must be a (possibly named)
+#'   numeric vector.
+#' @param nsim A positive integer telling the number of simulations, positive
+#'   integer; the bootstrap \eqn{R}.
+#' @param seed Optional argument to \code{\link[base]{set.seed}}.
 #' @param type A character string indicating the type of multilevel bootstrap.
-#'   Currently, possible values are "parametric", "residual", "residual_cgr",
-#'   "residual_trans", or "case".
+#'   Currently, possible values are \code{"parametric"}, \code{"residual"},
+#'   \code{"residual_cgr"}, \code{"residual_trans"}, or \code{"case"}.
 #' @param lv1_resample Logical indicating whether to sample with replacement
 #'   the level-1 units for each level-2 cluster. Only used for
 #'   \code{type = "case"}. Default is \code{FALSE}.
-#' @param .progress Logical indicating whether to display progressbar (using
+#' @param corrected_trans Logical indicating whether to use the correct
+#'   variance-covariance matrix of the residuals. If \code{FALSE}, use the
+#'   variance of \eqn{y}; if \code{TRUE}, use the variance of \eqn{y - X \hat
+#'   \beta}. Only used for \code{type = "residual_trans"}.
+#' @param .progress Logical indicating whether to display progress bar (using
 #'   \code{\link[utils]{txtProgressBar}}).
-#' @param verbose Logical indicating if progress should print output
-#' @return An object of S3 class "boot", compatible with \pkg{boot} package's
-#'   \code{\link[boot]{boot}()}. It contains the following components:
+#' @param verbose Logical indicating if progress should print output.
+#' @return An object of S3 class \code{"boot"}, compatible with \pkg{boot}
+#'   package's \code{\link[boot]{boot}()}. It contains the following components:
 #'
 #'   \item{t0}{The original statistic from \code{FUN(x)}.}
 #'   \item{t}{A matrix with \code{nsim} rows containing the bootstrap
@@ -54,6 +60,7 @@
 bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
                           type = c("parametric", "residual", "residual_cgr",
                                    "residual_trans", "case"),
+                          corrected_trans = FALSE,
                           lv1_resample = FALSE, .progress = FALSE,
                           verbose = FALSE) {
   type <- match.arg(type)
@@ -84,7 +91,7 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
     if (type %in% c("residual", "residual_cgr", "residual_trans")) {
       mle <- list(beta = x@beta, theta = x@theta)
       out <- list(sim = "parametric", ran.gen = NULL, mle = mle)
-      ss <- .resid_resample(x, nsim, type = type)
+      ss <- .resid_resample(x, nsim, type = type, corrected = corrected_trans)
       ffun <- local({
         FUN
         refit
