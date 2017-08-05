@@ -42,8 +42,12 @@
       RX <- PR$RX()
       Vr <- V - X %*% Matrix::chol2inv(RX) %*% t(X)
       Vr[V == 0] <- 0
-      Rr <- Matrix::chol(Vr)
-      Zeta <- get_zeta(r, Rr)
+      Rr <- try(Matrix::chol(Vr), silent = TRUE)
+      if (inherits(Rr, "try-error")) {
+        Zeta <- get_zeta_eigen(r, Vr)
+      } else {
+        Zeta <- get_zeta(r, Rr)
+      }
     } else {
       Zeta <- get_zeta(r, R)  # can use a corrected version
     }
@@ -101,6 +105,9 @@ case_newsample2 <- function(data, N, group, uniq_gp, gp_length, fname) {
 .case_resample <- function(x, nsim = 1, seed = NULL,
                            lv1_resample = FALSE) {
   # if (!is.null(seed)) {
+  if (length(x@cnms) > 1) {
+    stop("currently case bootstrap only support one level of clustering")
+  }
   if (!missing(seed)) {
     set.seed(seed)
   }

@@ -15,13 +15,21 @@ get_V <- function(x) {
   crossprod(A) + I
 }
 
-#' Get the square root of a matrix using Eigen decomposition, and solve
+#' Get the square root of a matrix using eigenvalue decomposition, and solve
 #' for a linear system
+#'
+#' Solve for \eqn{x} in the linear system
+#' \eqn{Ax = b}, where \eqn{A} is a
+#' symmetric matrix square root of \eqn{M} with eigenvalue
+#' decomposition such that \eqn{AA = M}.
+#'
+#' @param M a symmetric positive definite/semi-definite matrix
+#' @param b a numeric vector or matrix
 solve_eigen_sqrt <- function(M, b) {
   ei <- eigen(M)
   d <- ei$values
   dsqrtinv <- 1 / sqrt(d)
-  dsqrtinv[d <= 0] = 0
+  dsqrtinv[d <= 0] <- 0
   V <- ei$vectors
   Msqrtinv <- V %*% diag(dsqrtinv) %*% t(V)
   Msqrtinv %*% b
@@ -78,21 +86,21 @@ get_reflate_b_cgr <- function(x) {
   LR <- lme4::vec2mlist(x@theta, n = qs, symm = FALSE)
 
   # Hat matrix for u
-  if (all(b == 0)) {  # may break down when variance is 0 for just one component
-    ml <- lapply(seq_along(qs), function(i) {
-      matrix(0, nrow = qs[i], ncol = Js[i])
-    })
-  } else {
-    nqs <- Js * qs
-    nqseq <- rep.int(seq_along(nqs), nqs)
+  nqs <- Js * qs
+  nqseq <- rep.int(seq_along(nqs), nqs)
 
-    b_lst <- split(b, nqseq)
-    ml <- lapply(seq_along(b_lst), function(i) {
-      b_mat <- matrix(b_lst[[i]], nrow = qs[i])
-      LS <- t(Matrix::chol(tcrossprod(b_mat - rowMeans(b_mat)) / Js[i]))
+  b_lst <- split(b, nqseq)
+  ml <- lapply(seq_along(b_lst), function(i) {
+    b_mat <- matrix(b_lst[[i]], nrow = qs[i])
+    S <- tcrossprod(b_mat - rowMeans(b_mat)) / Js[i]
+    LS <- try(t(Matrix::chol(S)), silent = TRUE)
+    if (inherits(LS, "try-error")) {
+      LR[[i]] %*% solve_eigen_sqrt(S, b_mat) * sigma(x)
+    } else {
       LR[[i]] %*% Matrix::solve(LS, b_mat) * sigma(x)
-    })
-  }
+    }
+  })
+  # }
   return(ml)
 }
 
@@ -104,5 +112,10 @@ get_reflate_e_cgr <- function(x) {
 get_zeta <- function(r, R) {
   # R is the cholesky factor of V
   Zeta <- Matrix::solve(t(R), r)
+  Zeta - mean(Zeta)
+}
+
+get_zeta_eigen <- function(r, V) {
+  Zeta <- solve_eigen_sqrt(V, r)
   Zeta - mean(Zeta)
 }
