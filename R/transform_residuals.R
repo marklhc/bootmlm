@@ -26,7 +26,7 @@ get_V <- function(x) {
 #' @param M a symmetric positive definite/semi-definite matrix
 #' @param b a numeric vector or matrix
 solve_eigen_sqrt <- function(M, b) {
-  ei <- eigen(M)
+  ei <- eigen(M, symmetric = TRUE)
   d <- ei$values
   dsqrtinv <- 1 / sqrt(d)
   dsqrtinv[d <= 0] <- 0
@@ -78,6 +78,21 @@ get_reflate_e <- function(x) {
   (rsp$y - rsp$mu) / sqrt(1 - hat_e)
 }
 
+scale_b <- function(b_vec, J, q, sigma_x, LR) {
+  b_mat <- matrix(b_vec, nrow = q)
+  S <- tcrossprod(b_mat - rowMeans(b_mat)) / J
+  LS <- try(t(Matrix::chol(S)), silent = TRUE)
+  if (inherits(LS, "try-error")) {
+    LR %*% solve_eigen_sqrt(S, b_mat) * sigma_x
+  } else {
+    LR %*% Matrix::solve(LS, b_mat) * sigma_x
+  }
+}
+
+scale_e <- function(e, sigma_x) {
+  e / sqrt(mean(e^2)) * sigma_x
+}
+
 get_reflate_b_cgr <- function(x) {
   b <- lme4::getME(x, "b")
   Js <- lme4::ngrps(x)
@@ -90,23 +105,25 @@ get_reflate_b_cgr <- function(x) {
   nqseq <- rep.int(seq_along(nqs), nqs)
 
   b_lst <- split(b, nqseq)
+  sigma_x <- sigma(x)
   ml <- lapply(seq_along(b_lst), function(i) {
-    b_mat <- matrix(b_lst[[i]], nrow = qs[i])
-    S <- tcrossprod(b_mat - rowMeans(b_mat)) / Js[i]
-    LS <- try(t(Matrix::chol(S)), silent = TRUE)
-    if (inherits(LS, "try-error")) {
-      LR[[i]] %*% solve_eigen_sqrt(S, b_mat) * sigma(x)
-    } else {
-      LR[[i]] %*% Matrix::solve(LS, b_mat) * sigma(x)
-    }
+    scale_b(b_lst[[i]], Js[i], qs[i], sigma_x, LR[[i]])
+    # b_mat <- matrix(b_lst[[i]], nrow = qs[i])
+    # S <- tcrossprod(b_mat - rowMeans(b_mat)) / Js[i]
+    # LS <- try(t(Matrix::chol(S)), silent = TRUE)
+    # if (inherits(LS, "try-error")) {
+    #   LR[[i]] %*% solve_eigen_sqrt(S, b_mat) * sigma(x)
+    # } else {
+    #   LR[[i]] %*% Matrix::solve(LS, b_mat) * sigma(x)
+    # }
   })
   # }
   return(ml)
 }
 
 get_reflate_e_cgr <- function(x) {
-  estar <- resid(x)
-  estar / sd(estar) * sigma(x)
+  rsp <- x@resp
+  scale_e(e = rsp$y - rsp$mu, sigma_x = sigma(x))
 }
 
 get_zeta <- function(r, R) {
@@ -118,4 +135,33 @@ get_zeta <- function(r, R) {
 get_zeta_eigen <- function(r, V) {
   Zeta <- solve_eigen_sqrt(V, r)
   Zeta - mean(Zeta)
+}
+
+get_reb_resid <- function(x, Zt, r, scale = FALSE) {
+  Js <- lme4::ngrps(x)
+  qs <- lengths(x@cnms)
+  nqs <- Js * qs
+  nqseq <- rep.int(seq_along(nqs), nqs)
+
+  b <- Matrix::qr.coef(Matrix::qr(t(Zt)), r)
+  e <- r - crossprod(Zt, b)
+
+  b_lst <- split(b, nqseq)
+
+  if (scale) {
+    sigma_x <- sigma(x)
+    estar <- scale_e(e, sigma_x)
+    el <- split(estar - mean(estar), x@flist[[1]])
+    LR <- lme4::vec2mlist(x@theta, n = qs, symm = FALSE)
+    ml <- lapply(seq_along(b_lst), function(i) {
+      bstar <- scale_b(b_lst[[i]], Js[i], qs[i], sigma_x, LR[[i]])
+      bstar - rowMeans(bstar)
+    })
+  } else {
+    el <- split(e, x@flist[[1]])
+    ml <- lapply(seq_along(b_lst),
+                 # easier to work with the transposed version
+                 function(i) matrix(b_lst[[i]], nrow = qs[i]))
+  }
+  return(list(ml = ml, el = el))
 }

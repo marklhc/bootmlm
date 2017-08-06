@@ -15,7 +15,8 @@
 #' @param seed Optional argument to \code{\link[base]{set.seed}}.
 #' @param type A character string indicating the type of multilevel bootstrap.
 #'   Currently, possible values are \code{"parametric"}, \code{"residual"},
-#'   \code{"residual_cgr"}, \code{"residual_trans"}, or \code{"case"}.
+#'   \code{"residual_cgr"}, \code{"residual_trans"}, \code{"reb"},
+#'   or \code{"case"}.
 #' @param lv1_resample Logical indicating whether to sample with replacement
 #'   the level-1 units for each level-2 cluster. Only used for
 #'   \code{type = "case"}. Default is \code{FALSE}.
@@ -23,6 +24,8 @@
 #'   variance-covariance matrix of the residuals. If \code{FALSE}, use the
 #'   variance of \eqn{y}; if \code{TRUE}, use the variance of \eqn{y - X \hat
 #'   \beta}. Only used for \code{type = "residual_trans"}.
+#' @param reb_scale Logical indicating whether to scale the residuals for the
+#'   random effect block bootstrap
 #' @param .progress Logical indicating whether to display progress bar (using
 #'   \code{\link[utils]{txtProgressBar}}).
 #' @param verbose Logical indicating if progress should print output.
@@ -55,14 +58,15 @@
 #' plot(boo01, index = 1)
 #' # Get confidence interval
 #' boot.ci(boo01, index = 2, type = c("norm", "basic", "perc"))
-#' # BCa using influence values computed from `empinf_`
+#' # BCa using influence values computed from `empinf_mer`
 #' boot.ci(boo01, index = 2, type = "bca", L = empinf_mer(fm01ML, mySumm, 2))
 bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
                           type = c("parametric", "residual", "residual_cgr",
-                                   "residual_trans", "case"),
+                                   "residual_trans", "reb", "case"),
                           corrected_trans = FALSE,
-                          lv1_resample = FALSE, .progress = FALSE,
-                          verbose = FALSE) {
+                          lv1_resample = FALSE,
+                          reb_scale = FALSE,
+                          .progress = FALSE, verbose = FALSE) {
   type <- match.arg(type)
   if (type == "parametric") {
     return(lme4::bootMer(x, FUN, nsim, seed = seed, use.u = FALSE,
@@ -88,10 +92,14 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
     }
 
     # can use the switch function
-    if (type %in% c("residual", "residual_cgr", "residual_trans")) {
+    if (type %in% c("residual", "residual_cgr", "residual_trans", "reb")) {
       mle <- list(beta = x@beta, theta = x@theta)
       out <- list(sim = "parametric", ran.gen = NULL, mle = mle)
-      ss <- .resid_resample(x, nsim, type = type, corrected = corrected_trans)
+      if (type == "reb") {
+        ss <- .reb_resample(x, nsim, scale = reb_scale)
+      } else {
+        ss <- .resid_resample(x, nsim, type = type, corrected = corrected_trans)
+      }
       ffun <- local({
         FUN
         refit

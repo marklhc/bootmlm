@@ -5,9 +5,9 @@
 \title{Run Various Bootstrap for Mixed Models.}
 \usage{
 bootstrap_mer(x, FUN, nsim = 1, seed = NULL, type = c("parametric",
-  "residual", "residual_cgr", "residual_trans", "case"),
-  corrected_trans = FALSE, lv1_resample = FALSE, .progress = FALSE,
-  verbose = FALSE)
+  "residual", "residual_cgr", "residual_trans", "reb", "case"),
+  corrected_trans = FALSE, lv1_resample = FALSE, reb_scale = FALSE,
+  .progress = FALSE, verbose = FALSE)
 }
 \arguments{
 \item{x}{A fitted \code{merMod} object from \code{\link[lme4]{lmer}}.}
@@ -23,7 +23,8 @@ integer; the bootstrap \eqn{R}.}
 
 \item{type}{A character string indicating the type of multilevel bootstrap.
 Currently, possible values are \code{"parametric"}, \code{"residual"},
-\code{"residual_cgr"}, \code{"residual_trans"}, or \code{"case"}.}
+\code{"residual_cgr"}, \code{"residual_trans"}, \code{"reb"},
+or \code{"case"}.}
 
 \item{corrected_trans}{Logical indicating whether to use the correct
 variance-covariance matrix of the residuals. If \code{FALSE}, use the
@@ -33,6 +34,9 @@ variance of \eqn{y}; if \code{TRUE}, use the variance of \eqn{y - X \hat
 \item{lv1_resample}{Logical indicating whether to sample with replacement
 the level-1 units for each level-2 cluster. Only used for
 \code{type = "case"}. Default is \code{FALSE}.}
+
+\item{reb_scale}{Logical indicating whether to scale the residuals for the
+random effect block bootstrap}
 
 \item{.progress}{Logical indicating whether to display progress bar (using
 \code{\link[utils]{txtProgressBar}}).}
@@ -71,7 +75,7 @@ library(boot)
 plot(boo01, index = 1)
 # Get confidence interval
 boot.ci(boo01, index = 2, type = c("norm", "basic", "perc"))
-# BCa using influence values computed from `empinf_`
+# BCa using influence values computed from `empinf_mer`
 boot.ci(boo01, index = 2, type = "bca", L = empinf_mer(fm01ML, mySumm, 2))
 }
 \seealso{

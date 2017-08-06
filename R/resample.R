@@ -53,7 +53,8 @@
     }
 
     ss <- replicate(nsim, {
-      as.vector(fixed + crossprod(R, sample(Zeta, replace = TRUE)))
+      as.vector(fixed +
+                  crossprod(R, Zeta[sample.int(length(Zeta), replace = TRUE)]))
     },
     simplify = FALSE)
   } else if (type %in% c("residual", "residual_cgr")) {
@@ -71,10 +72,43 @@
       }))
 
       as.vector(fixed + crossprod(Zt, bstar_new) +
-                  sample(estar, replace = TRUE))
+                  estar[sample.int(length(estar), replace = TRUE)])
     },
     simplify = FALSE)
   }
+  ss
+}
+
+.reb_resample <- function(x, nsim = 1, seed = NULL, scale = FALSE) {
+  if (length(x@flist) > 1) {
+    stop("currently REB bootstrap only support one level of clustering")
+  }
+  if (!missing(seed)) {
+    set.seed(seed)
+  }
+  if (!exists(".Random.seed", envir = .GlobalEnv)) {
+    runif(1)
+  }
+
+  PR <- x@pp
+  Zt <- PR$Zt
+  X <- PR$X
+  fixed <- X %*% x@beta
+
+  r <- x@resp$y - fixed
+  rr <- get_reb_resid(x, Zt, r, scale = scale)
+  ml <- rr$ml
+  el <- rr$el
+
+  ss <- replicate(nsim, {
+    b_new <- unlist(lapply(ml, function(m)
+      m[ , sample.int(ncol(m), replace = TRUE)]))
+    e_new <- unlist(lapply(el, function(e)
+      e[sample.int(length(e), replace = TRUE)]))
+
+    as.vector(fixed + crossprod(Zt, b_new) + e_new)
+  },
+  simplify = FALSE)
   ss
 }
 
@@ -105,7 +139,7 @@ case_newsample2 <- function(data, N, group, uniq_gp, gp_length, fname) {
 .case_resample <- function(x, nsim = 1, seed = NULL,
                            lv1_resample = FALSE) {
   # if (!is.null(seed)) {
-  if (length(x@cnms) > 1) {
+  if (length(x@flist) > 1) {
     stop("currently case bootstrap only support one level of clustering")
   }
   if (!missing(seed)) {
@@ -131,71 +165,6 @@ case_newsample2 <- function(data, N, group, uniq_gp, gp_length, fname) {
                   simplify = FALSE)
   ss
 }
-
-# .resid_cgr_resample <- function(x, nsim = 1, seed = NULL) {
-#   # reflate residuals
-#   if (!is.null(seed)) {
-#     set.seed(seed)
-#   }
-#   if (!exists(".Random.seed", envir = .GlobalEnv)) {
-#     runif(1)
-#   }
-#   # RNGstate <- .Random.seed
-#
-#   # Extract required quantities from the S4 object
-#   PR <- x@pp
-#   Zt <- PR$Zt
-#   X <- unname(PR$X)
-#   fixed <- X %*% x@beta
-#
-#   ml <- get_reflate_b_cgr(x)
-#   estar <- get_reflate_e_cgr(x)
-#
-#   replicate(nsim, {
-#     bstar_new <- unlist(lapply(ml, function(m) {
-#       m[ , sample.int(ncol(m), replace = TRUE)]
-#     }))
-#
-#     as.vector(fixed + crossprod(Zt, bstar_new) + sample(estar, replace = TRUE))
-#   },
-#   simplify = FALSE)
-# }
-#
-# .resid_trans_resample <- function(x, nsim = 1, seed = NULL,
-#                                   corrected = FALSE) {
-#   # transform residuals to be independent
-#   if (!is.null(seed)) {
-#     set.seed(seed)
-#   }
-#   if (!exists(".Random.seed", envir = .GlobalEnv)) {
-#     runif(1)
-#   }
-#   # RNGstate <- .Random.seed
-#
-#   # Extract required quantities from the S4 object
-#   PR <- x@pp
-#   X <- PR$X
-#   fixed <- X %*% x@beta
-#
-#   # Transform residuals
-#   r <- x@resp$y - fixed  # the variance of r may not be V
-#   V <- get_V(x)
-#   # var_r <- (V - X %*% Matrix::chol2inv(RX) %*% t(X)) * (V != 0)
-#   R <- Matrix::chol(V)
-#   if (corrected) {
-#     RX <- PR$RX()
-#     Vr <- (V - X %*% Matrix::chol2inv(RX) %*% t(X)) * (V != 0)
-#     Rr <- Matrix::chol(Vr)
-#     Zeta <- get_zeta(r, Vr)
-#   } else {
-#     Zeta <- get_zeta(r, R)  # can use a corrected version
-#   }
-#
-#   replicate(nsim, {
-#     as.vector(fixed + crossprod(R, sample(Zeta, replace = TRUE)))
-#   },
-#   simplify = FALSE)
-# }
 
 # pupcross <- haven::read_sas(
 #   "https://stats.idre.ucla.edu/wp-content/uploads/2016/02/pupcross.sas7bdat")
