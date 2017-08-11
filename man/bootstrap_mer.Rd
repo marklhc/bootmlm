@@ -49,9 +49,15 @@ An object of S3 class \code{"boot"}, compatible with \pkg{boot}
 
   \item{t0}{The original statistic from \code{FUN(x)}.}
   \item{t}{A matrix with \code{nsim} rows containing the bootstrap
-           distribution of the statistic.}
+  distribution of the statistic.}
   \item{R}{The value of \code{nsim} passed to the function.}
   \item{data}{The data used in the original analysis.}
+  \item{seed}{The value of \code{.Random.seed} when \code{bootstrap_mer}
+  started to work.}
+  \item{statistic}{The function \code{FUN} passed to \code{bootstrap_mer}.}
+
+See the documentation in for \code{link[boot]{boot}()} for the other
+  components.
 }
 \description{
 Run multilevel parametric, residual, and case bootstrap with different
@@ -59,7 +65,7 @@ Run multilevel parametric, residual, and case bootstrap with different
 }
 \details{
 \code{bootstrap_mer} performs different bootstrapping methods to fitted
-model objects using the lme4 package. Currently, only models fitted
+model objects using the \pkg{lme4} package. Currently, only models fitted
 using \code{\link[lme4]{lmer}} is supported.
 }
 \examples{
@@ -78,9 +84,33 @@ boot.ci(boo01, index = 2, type = c("norm", "basic", "perc"))
 # BCa using influence values computed from `empinf_mer`
 boot.ci(boo01, index = 2, type = "bca", L = empinf_mer(fm01ML, mySumm, 2))
 }
+\references{
+Carpenter, J. R., Goldstein, H., & Rasbash, J. (2003). A novel
+  bootstrap procedure for assessing the relationship between class size and
+  achievement. Journal of the Royal Statistical Society. Series C (Applied
+  Statistics), 52, 431–443. https://doi.org/10.1111/1467-9876.00415
+
+Chambers, R., & Chandra, H. (2013). A random effect block
+  bootstrap for clustered data. Journal of Computational and Graphical
+  Statistics, 22(2), 452–470. https://doi.org/10.1080/10618600.2012.681216
+
+Davison, A. C. and Hinkley, D. V. (1997). Bootstrap methods and
+  their application. Cambridge, UK: Cambridge University Press.
+
+Morris, J. S. (2002). The BLUPs are not "best" when it comes to
+  bootstrapping. Statistics & Probability Letters, 56(4), 425–430.
+  https://doi.org/10.1016/S0167-7152(02)00041-X
+
+Van der Leeden, R., Meijer, E., & Busing, F. M. T. A. (2008).
+  Resampling multilevel models. In J. de Leeuw & E. Meijer (Eds.), Handbook
+  of multilevel Analysis (pp. 401–433). New York, NY: Springer.
+}
 \seealso{
-\code{\link[boot]{boot}} for single-level bootstrapping,
-  \code{\link[lme4]{bootMer}} for parametric and semi-parametric bootstrap
-  implemented in lme4, and \code{\link[boot]{boot.ci}} for getting
-  bootstrap confidence intervals.
+\itemize{
+  \item \code{\link[boot]{boot}} for single-level bootstrapping,
+  \item \code{\link[lme4]{bootMer}} for parametric and semi-parametric
+  bootstrap implemented in lme4, and
+  \item \code{\link[boot]{boot.ci}} for getting bootstrap confidence
+  intervals and \code{\link[boot]{plot.boot}} for plotting the bootstrap
+  distribution.}
 }

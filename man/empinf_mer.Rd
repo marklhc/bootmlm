@@ -7,7 +7,7 @@
 empinf_mer(x, FUN, index = 1)
 }
 \arguments{
-\item{x}{A fitted merMod object from lmer.}
+\item{x}{A fitted merMod object from \code{\link[lme4]{lmer}}.}
 
 \item{FUN}{A function taking a fitted merMod object as input and returning
 the statistic of interest, which must be a (possibly named) numeric vector
@@ -21,8 +21,8 @@ A numeric vector with length equals to number of clusters of
   \code{x} containing the weighted influence value of each cluster.
 }
 \description{
-This function calculates the empirical influence values for a statistic in
-  a given fitted data object using the delete-\eqn{m_j} jackknife.
+This function calculates the empirical influence values for a statistic in a
+given fitted model object using the delete-\eqn{m_j} jackknife.
 }
 \details{
 \code{empinf_mer} computes non-parametric influence function of models
@@ -35,4 +35,9 @@ fm01ML <- lmer(Yield ~ (1 | Batch), Dyestuff, REML = FALSE)
 # Define function for intraclass correlation
 icc <- function(x) 1 / (1 + 1 / getME(x, "theta")^2)
 empinf_mer(fm01ML, icc)
+}
+\references{
+Van der Leeden, R., Meijer, E., & Busing, F. M. T. A. (2008).
+  Resampling multilevel models. In J. de Leeuw & E. Meijer (Eds.), Handbook
+  of multilevel Analysis (pp. 401–433). New York, NY: Springer.
 }

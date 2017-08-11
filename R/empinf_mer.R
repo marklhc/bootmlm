@@ -1,12 +1,12 @@
 #' Empirical Influence Values for Two-Level Mixed Models
 #'
-#' This function calculates the empirical influence values for a statistic in
-#'   a given fitted data object using the delete-\eqn{m_j} jackknife.
+#' This function calculates the empirical influence values for a statistic in a
+#' given fitted model object using the delete-\eqn{m_j} jackknife.
 #'
 #' \code{empinf_mer} computes non-parametric influence function of models
 #' fitted using \code{\link[lme4]{lmer}} by deleting one cluster at a time. See
 #' van der Leeden, Meijer, and Busing (2008, pp. 420--422) for more information.
-#' @param x A fitted merMod object from lmer.
+#' @param x A fitted merMod object from \code{\link[lme4]{lmer}}.
 #' @param FUN A function taking a fitted merMod object as input and returning
 #'   the statistic of interest, which must be a (possibly named) numeric vector
 #'   of length 1.
@@ -14,6 +14,9 @@
 #'   \code{FUN(x)}.
 #' @return A numeric vector with length equals to number of clusters of
 #'   \code{x} containing the weighted influence value of each cluster.
+#' @references Van der Leeden, R., Meijer, E., & Busing, F. M. T. A. (2008).
+#'   Resampling multilevel models. In J. de Leeuw & E. Meijer (Eds.), Handbook
+#'   of multilevel Analysis (pp. 401–433). New York, NY: Springer.
 #' @export
 #' @examples
 #' library(lme4)
