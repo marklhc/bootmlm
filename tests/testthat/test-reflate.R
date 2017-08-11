@@ -63,3 +63,30 @@ test_that("solve_eigen_sqrt() gives correct result", {
   M <- var(x)
   expect_equal(tcrossprod(solve_eigen_sqrt(M, M)), M)
 })
+
+test_that("same results with get_zeta() and get_zeta_eigen()", {
+  M <- Matrix::diag(runif(10))
+  r <- rnorm(10)
+  expect_equal(get_zeta(r, Matrix::chol(M)), get_zeta_eigen(r, M))
+})
+
+test_that("get_reb_resid are correct for RS", {
+  Zt <- m1@pp$Zt
+  r <- with(m1@resp, y - mu)
+  reb_resid <- get_reb_resid(m1, Zt, r, scale = FALSE)
+  reb_resid_s <- get_reb_resid(m1, Zt, r, scale = TRUE)
+  m1_ml <- reb_resid$ml
+  m1_ml_s <- reb_resid_s$ml
+  m1_bvc <- tcrossprod(m1_ml_s[[1]]) / ngrps(m1)
+  m1_el <- reb_resid$el
+  m1_el_s <- reb_resid_s$el
+
+  expect_equal(length(unlist(m1_ml)), length(unlist(m1_ml_s)),
+               length(getME(m1, "b")))
+  expect_equivalent(m1_bvc, VarCorr(m1)[[1]])
+  expect_true(all(diag(tcrossprod(m1_ml_s[[1]])) >
+                    diag(tcrossprod(m1_ml[[1]]))))
+  expect_equal(length(unlist(m1_el)), length(unlist(m1_el_s)),
+               length(resid(m1)))
+  expect_true(all(unlist(m1_el_s) / unlist(m1_el) > 1))
+})

@@ -52,8 +52,30 @@ test_that("`corrected_trans` only affect `type = 'residual_trans'", {
   expect_true(identical_rerun(m1, "residual"))
   expect_true(identical_rerun(m1, "residual_cgr"))
   expect_false(identical_rerun(m1, "residual_trans"))
+  expect_true(identical_rerun(m1, "reb"))
   expect_true(identical_rerun(m1, "case"))
 })
+
+test_that("`reb_scale` only affect `type = 'reb'", {
+  identical_rerun <- function(x, type, FUN = mySumm, nsim = 5L, seed = 124) {
+    # Whether output is the same with `corrected_trans` as TRUE or FALSE
+    boo1 <- bootstrap_mer(x, FUN = FUN, nsim = nsim, type = type, seed = seed,
+                          reb_scale = FALSE)
+    boo2 <- bootstrap_mer(x, FUN = FUN, nsim = nsim, type = type, seed = seed,
+                          reb_scale = TRUE)
+    boo1 <- boo1[names(boo1) != "call"]
+    boo2 <- boo2[names(boo2) != "call"]
+    identical(boo1, boo2)
+  }
+
+  expect_true(identical_rerun(m1, "parametric"))
+  expect_true(identical_rerun(m1, "residual"))
+  expect_true(identical_rerun(m1, "residual_cgr"))
+  expect_true(identical_rerun(m1, "residual_trans"))
+  expect_false(identical_rerun(m1, "reb"))
+  expect_true(identical_rerun(m1, "case"))
+})
+
 
 test_that("`lv1_resample` only affect `type = 'case'", {
   identical_rerun <- function(x, type, FUN = mySumm, nsim = 5L, seed = 124) {
@@ -71,5 +93,6 @@ test_that("`lv1_resample` only affect `type = 'case'", {
   expect_true(identical_rerun(m1, "residual"))
   expect_true(identical_rerun(m1, "residual_cgr"))
   expect_true(identical_rerun(m1, "residual_trans"))
+  expect_true(identical_rerun(m1, "reb"))
   expect_false(identical_rerun(m1, "case"))
 })
