@@ -11,7 +11,8 @@ var_blup <- function(L, RX, A, Lambdat, X) {
 get_V <- function(x) {
   # compute the variance of the outcome y (not including sigma^2)
   A <- lme4::getME(x, "A")
-  I <- diag(nobs(x))
+  # I <- diag(nobs(x))
+  I <- Matrix::Diagonal(nobs(x))
   crossprod(A) + I
 }
 
@@ -28,8 +29,9 @@ get_V <- function(x) {
 solve_eigen_sqrt <- function(M, b) {
   ei <- eigen(M, symmetric = TRUE)
   d <- ei$values
+  d[d < 0] <- 0
   dsqrtinv <- 1 / sqrt(d)
-  dsqrtinv[d <= 0] <- 0
+  dsqrtinv[d == 0] <- 0
   V <- ei$vectors
   Msqrtinv <- V %*% diag(dsqrtinv) %*% t(V)
   Msqrtinv %*% b
@@ -134,7 +136,7 @@ get_zeta <- function(r, R) {
 
 get_zeta_eigen <- function(r, V) {
   Zeta <- solve_eigen_sqrt(V, r)
-  Zeta - mean(Zeta)
+  as.vector(Zeta - mean(Zeta))
 }
 
 get_reb_resid <- function(x, Zt, r, scale = FALSE) {
