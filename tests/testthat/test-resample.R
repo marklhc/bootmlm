@@ -26,6 +26,16 @@ test_that(".case_resample() gives correct output type", {
   expect_false(identical(boo1[1:2], boo2))
 })
 
+test_that(".reb_resample() gives correct output type", {
+  boo1 <- .reb_resample(m1, nsim = 3, seed = 123, scale = FALSE)
+  boo2 <- .reb_resample(m1, nsim = 2, seed = 123, scale = TRUE)
+
+  expect_output(str(boo1), "List of 3")
+  expect_output(str(boo2), "num [1:180]", fixed = TRUE)
+  expect_false(identical(boo1[1], boo1[2]))
+  expect_false(identical(boo1[1:2], boo2))
+})
+
 test_that(".resid_resample() gives distinct resamples", {
   boo1 <- .resid_resample(m1, nsim = 2, seed = 122, type = "residual")
   boo2 <- .resid_resample(m1, nsim = 3, seed = 122, type = "residual")
