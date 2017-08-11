@@ -3,3 +3,4 @@
 3. Add vignettes to explain the bootstrap algorithms
 4. Support conditioning variable (e.g., treatment) for case bootstrap
 5. Add tests for the helper functions for transforming residuals and REB resampling
+6. Group three residual bootstrap as one type, and add additional specification
