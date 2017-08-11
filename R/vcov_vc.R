@@ -26,6 +26,93 @@
 #   return(vv2)
 # }
 
+# theta_to_Lambdat <- function(theta, Js, qs) {
+#   stopifnot(length(Js) == length(qs))
+#   LR <- lme4::vec2mlist(x@theta, n = qs, symm = FALSE)
+#   Ldt_lst <- lapply(seq_along(Js),
+#                     function(i) Matrix::Diagonal(Js[[i]]) %x% LR[[i]])
+#   t(Matrix::bdiag(Ldt_lst))
+# }
+
+#' Asymptotic Covariance Matrix for Random Effects
+#'
+#' Return the asymptotic covariance matrix of random effect standard
+#' deviations (or variances) for a fitted model object, using the Hessian
+#' evaluated at the (restricted) maximum likelihood estimates.
+#'
+#' Although it's easy to obtain the Hessian for \eqn{\theta}, the relative
+#' Cholesky factor, in \pkg{lme4}, there is no easy way to obtain the Hessian
+#' for the variance components. This function uses \code{\link{devfun_mer}()} to
+#' obtain the Hessian (\eqn{H}) of variance components (or standard deviations,
+#' SD), and then obtain the asymptotic covariance matrix as \eqn{-2 H^{-1}}.
+#'
+#' @param x A fitted merMod object from \code{\link[lme4]{lmer}}.
+#' @param sd_cor Logical indicating whether to return asymptotic covariance
+#'   matrix on SD scale (if \code{TRUE}) or on variance scale
+#'   (if \code{FALSE}).
+#' @param print_names Logical, whether to print the names for the covariance
+#'   matrix.
+#' @return A (q + 1) * (q + 1) symmetric matrix of the covariance
+#'   matrix of (\eqn{\tau, \sigma}) (if \code{sd_cor = TRUE}) or
+#'   (\eqn{\tau^2, \sigma^2}) (if \code{sd_cor = FALSE}), where q is the
+#'   the number of estimated random-effects components (excluding \eqn{\sigma}).
+#'   For example, for a model with random slope, \eqn{\tau} =
+#'   (intercept SD, intercept-slope correlation, slope SD).
+#' @export
+#' @examples
+#' library(lme4)
+#' data(Orthodont, package = "nlme")
+#' fm1 <- lmer(distance ~ age + (age | Subject), data = Orthodont)
+#' vc <- VarCorr(fm1)
+#' # Standard deviation only
+#' print(vc, comp = c("Std.Dev"))
+#' # Asymptotic variance-covariance matrix of (tau, sigma):
+#' vcov_vc(fm1, sd_cor = TRUE)
+#' # Compare with (parametric) bootstrap results :
+#' get_sdcor <- function(x) {
+#'   as.data.frame(lme4::VarCorr(x), order = "lower.tri")[ , "sdcor"]
+#' }
+#' boo <- bootstrap_mer(fm1, get_sdcor, type = "parametric", nsim = 200L)
+#' # There might be failures in some resamples
+#' cov(boo$t, use = "complete.obs")
+vcov_vc <- function(x, sd_cor = TRUE, print_names = TRUE) {
+  dd <- devfun_mer(x)
+  n_th <- length(x@theta)
+  qs <- lengths(x@cnms)
+  if (sd_cor) {
+    # from_chol <- lme4::Cv_to_Sv
+    to_chol <- lme4::Sv_to_Cv
+  } else {
+    # from_chol <- lme4::Cv_to_Vv
+    to_chol <- lme4::Vv_to_Cv
+  }
+  dd2 <- function(vc) {
+    sigma <- if (sd_cor) vc[n_th + 1] else sqrt(vc[n_th + 1])
+    th_sig <- c(to_chol(vc, n = qs, s = sigma), sigma)
+    dd(th_sig)
+  }
+  vc <- lme4::VarCorr(x)
+  vdd <- as.data.frame(vc, order = "lower.tri")
+  vc_pars <- if (sd_cor) vdd[ , "sdcor"] else vdd[ , "vcov"]
+  # vc <- from_chol(x@theta, n = qs, s = sigma(x))
+  hess <- numDeriv::hessian(dd2, vc_pars)
+  vv <- 2 * Matrix::solve(hess)
+  if (print_names) {
+    prefix <- if (sd_cor) {
+      c("sd_", "cor_", "sigma")
+    } else {
+      c("var_", "cov_", "sigma2")
+    }
+    nms <- with(vdd,
+                ifelse(!is.na(var1) & !is.na(var2),
+                       paste(prefix[2], var2, ".", var1, "|", grp, sep = ""),
+                       ifelse(grp == "Residual", prefix[3],
+                              paste(prefix[1], var1, "|", grp, sep = ""))))
+    dimnames(vv) <- list(nms, nms)
+  }
+  vv
+}
+
 devfun_sig <- function(sigma, .x) {
   sigsq <- sigma^2
   if (lme4::isREML(.x)) {
@@ -72,7 +159,13 @@ vcov_theta <- function(x) {
 #' @references Implementation in \pkg{lme4pureR}:
 #'   \url{https://github.com/lme4/lme4pureR/blob/master/R/pls.R}
 #' @export
-devfun2_mer <- function(x) {
+#' @examples
+#' library(lme4)
+#' fm01ML <- lmer(Yield ~ (1 | Batch), Dyestuff, REML = FALSE)
+#' dd <- devfun_mer(fm01ML)
+#' # Asymptotic variance-covariance matrix of (theta, sigma):
+#' 2 * solve(numDeriv::hessian(dd, c(fm01ML@theta, sigma(fm01ML))))
+devfun_mer <- function(x) {
   res <- x@resp
   offset <- res$offset
   y <- res$y
@@ -128,7 +221,3 @@ devfun2_mer <- function(x) {
     }
   })
 }
-
-# Example:
-# dd2 <- devfun2_mer(m2)
-# 2 * solve(numDeriv::hessian(dd2, c(m2@theta, sigma(m2))))

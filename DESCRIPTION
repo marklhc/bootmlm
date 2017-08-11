@@ -13,6 +13,7 @@ Imports:
     lme4 (>= 1.1-13), 
     Matrix (>= 1.2-10), 
     methods, 
+    numDeriv,
     stats, 
     utils
 Suggests:
