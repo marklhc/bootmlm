@@ -3,6 +3,8 @@
 export(bootstrap_mer)
 export(devfun_mer)
 export(empinf_mer)
+export(scores_mer)
+export(vcov_theta)
 export(vcov_vc)
 importFrom(Matrix,crossprod)
 importFrom(Matrix,mean)

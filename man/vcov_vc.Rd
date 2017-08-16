@@ -53,3 +53,9 @@ boo <- bootstrap_mer(fm1, get_sdcor, type = "parametric", nsim = 200L)
 # There might be failures in some resamples
 cov(boo$t, use = "complete.obs")
 }
+\seealso{
+\code{\link[lme4]{vcov.merMod}} for covariance matrix of fixed
+  effects, \code{\link[lme4]{confint.merMod}} for confidence intervals of all
+  parameter estimates, and \code{\link{devfun_mer}} for the underlying
+  function to produce the deviance function.
+}

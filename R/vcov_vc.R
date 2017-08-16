@@ -58,6 +58,10 @@
 #'   the number of estimated random-effects components (excluding \eqn{\sigma}).
 #'   For example, for a model with random slope, \eqn{\tau} =
 #'   (intercept SD, intercept-slope correlation, slope SD).
+#' @seealso \code{\link[lme4]{vcov.merMod}} for covariance matrix of fixed
+#'   effects, \code{\link[lme4]{confint.merMod}} for confidence intervals of all
+#'   parameter estimates, and \code{\link{devfun_mer}} for the underlying
+#'   function to produce the deviance function.
 #' @export
 #' @examples
 #' library(lme4)
@@ -76,6 +80,9 @@
 #' # There might be failures in some resamples
 #' cov(boo$t, use = "complete.obs")
 vcov_vc <- function(x, sd_cor = TRUE, print_names = TRUE) {
+  if (!lme4::isLMM(x)) {
+    stop("currently only linear mixed model of class `merMod` is supported")
+  }
   dd <- devfun_mer(x)
   n_th <- length(x@theta)
   qs <- lengths(x@cnms)
@@ -126,8 +133,10 @@ devfun_sig <- function(sigma, .x) {
 
 #' @importFrom numDeriv hessian
 #' @importFrom stats update
+#' @export
 vcov_theta <- function(x) {
-  x_devfun <- update(x, devFunOnly = TRUE)
+  org_data <- x@frame
+  x_devfun <- update(x, data = org_data, devFunOnly = TRUE)
   hess <- numDeriv::hessian(x_devfun, x@theta)
   2 * Matrix::solve(hess)
 }
