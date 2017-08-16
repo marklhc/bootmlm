@@ -105,19 +105,41 @@ vcov_vc <- function(x, sd_cor = TRUE, print_names = TRUE) {
   hess <- numDeriv::hessian(dd2, vc_pars)
   vv <- 2 * Matrix::solve(hess)
   if (print_names) {
-    prefix <- if (sd_cor) {
-      c("sd_", "cor_", "sigma")
-    } else {
-      c("var_", "cov_", "sigma2")
-    }
-    nms <- with(vdd,
-                ifelse(!is.na(var1) & !is.na(var2),
-                       paste(prefix[2], var2, ".", var1, "|", grp, sep = ""),
-                       ifelse(grp == "Residual", prefix[3],
-                              paste(prefix[1], var1, "|", grp, sep = ""))))
+    # prefix <- if (sd_cor) {
+    #   c("sd_", "cor_", "sigma")
+    # } else {
+    #   c("var_", "cov_", "sigma2")
+    # }
+    # nms <- with(vdd,
+    #             ifelse(!is.na(var1) & !is.na(var2),
+    #                    paste(prefix[2], var2, ".", var1, "|", grp, sep = ""),
+    #                    ifelse(grp == "Residual", prefix[3],
+    #                           paste(prefix[1], var1, "|", grp, sep = ""))))
+    nms <- make_vcnames(vdd, sd_cor = sd_cor)
     dimnames(vv) <- list(nms, nms)
   }
   vv
+}
+
+make_vcnames <- function(x, sd_cor = TRUE) {
+  # If `x` is of class `VarCorr.merMod`
+  if (inherits(x, "VarCorr.merMod")) {
+    vdd <- as.data.frame(x)
+  } else if (inherits(x, "data.frame")) {
+    vdd <- x
+  } else {
+    stop("input object is not obtained from lme4::VarCorr()")
+  }
+  prefix <- if (sd_cor) {
+    c("sd_", "cor_", "sigma")
+  } else {
+    c("var_", "cov_", "sigma2")
+  }
+  with(vdd,
+       ifelse(!is.na(var1) & !is.na(var2),
+              paste(prefix[2], var2, ".", var1, "|", grp, sep = ""),
+              ifelse(grp == "Residual", prefix[3],
+                     paste(prefix[1], var1, "|", grp, sep = ""))))
 }
 
 devfun_sig <- function(sigma, .x) {
@@ -131,6 +153,10 @@ devfun_sig <- function(sigma, .x) {
     log(2 * pi * sigsq)
 }
 
+#' Asymptotic Covariance Matrix for Cholesky Factor of Random Effects
+#'
+#' @param x A fitted merMod object from \code{\link[lme4]{lmer}}.
+#' @seealso \code{\link{vcov_vc}}
 #' @importFrom numDeriv hessian
 #' @importFrom stats update
 #' @export
