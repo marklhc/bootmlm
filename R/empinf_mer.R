@@ -32,7 +32,7 @@ empinf_mer <- function(x, FUN, index = 1) {
   th_noj <- rep(NA, J)
   n <- nobs(x)
   gp <- x@flist[[1]]
-  nj <- unname(table(gp))
+  nj <- as.vector(unname(table(gp)))
   hj <- n / nj
   formula_x <- formula(x)
   org_data <- x@frame
@@ -44,7 +44,8 @@ empinf_mer <- function(x, FUN, index = 1) {
   }
   th_Jmj <- J * th_n - sum( (1 - 1 / hj) * th_noj)
   th_tilde <- hj * th_n - (hj - 1) * th_noj
-  (hj - 1) * (th_Jmj - th_tilde)
+  # (hj - 1) * (th_Jmj - th_tilde)
+  (hj - 1) * (th_tilde - th_Jmj)
 }
 
 empinf_mer_old <- function(x, FUN) {
