@@ -119,7 +119,7 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
     # can use the switch function
     if (type %in% c("residual", "residual_cgr", "residual_trans", "reb")) {
       mle <- list(beta = x@beta, theta = x@theta)
-      out <- list(sim = "parametric", ran.gen = NULL, mle = mle)
+      out <- list(sim = "ordinary", ran.gen = NULL, mle = mle)
       if (type == "reb") {
         ss <- .reb_resample(x, nsim, scale = reb_scale)
       } else {
@@ -151,17 +151,21 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
       out <- list(sim = "ordinary", strata = rep(1, nobs(x)))
       ss <- .case_resample(x, nsim, lv1_resample = lv1_resample)
       ffun <- local({
+        # x
         FUN
         formula_x <- formula(x)
+        # update
         ss
         verbose
         length_t0 <- length(t0)
-        use_REML <- as.logical(lme4::getME(x, "REML"))
+        use_REML <- lme4::isREML(x)
         function(i) {
           df_i <- ss[[i]]
           ret <- tryCatch(
             FUN(lmer(formula_x, data = df_i, REML = use_REML,
                      control = lmerControl(calc.derivs = FALSE))),
+            # FUN(update(x, data = df_i,
+            #            control = lmerControl(calc.derivs = FALSE))),
             error = function(e) e)
           if (verbose) {
             cat(sprintf("%5d :", i))
