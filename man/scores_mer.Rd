@@ -4,7 +4,14 @@
 \alias{scores_mer}
 \title{Score Functions and Case-wise Derivatives}
 \usage{
-scores_mer(x)
+scores_mer(x, level = 2)
+}
+\arguments{
+\item{x}{A fitted \code{merMod} object from \code{\link[lme4]{lmer}}.}
+
+\item{level}{If \code{level = 1}, scores at level-1 are returned; if
+\code{level = 2}, which is the default, aggregated scores at the cluster-
+level are returned.}
 }
 \description{
 Score Functions and Case-wise Derivatives
