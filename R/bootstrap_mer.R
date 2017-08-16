@@ -151,21 +151,21 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
       out <- list(sim = "ordinary", strata = rep(1, nobs(x)))
       ss <- .case_resample(x, nsim, lv1_resample = lv1_resample)
       ffun <- local({
-        # x
+        x
         FUN
-        formula_x <- formula(x)
-        # update
+        # formula_x <- formula(x)
+        update
         ss
         verbose
         length_t0 <- length(t0)
-        use_REML <- lme4::isREML(x)
+        # use_REML <- lme4::isREML(x)
         function(i) {
           df_i <- ss[[i]]
           ret <- tryCatch(
-            FUN(lmer(formula_x, data = df_i, REML = use_REML,
-                     control = lmerControl(calc.derivs = FALSE))),
-            # FUN(update(x, data = df_i,
-            #            control = lmerControl(calc.derivs = FALSE))),
+            # FUN(lmer(formula_x, data = df_i, REML = use_REML,
+            #          control = lmerControl(calc.derivs = FALSE))),
+            FUN(update(x, data = df_i,
+                       control = lmerControl(calc.derivs = FALSE))),
             error = function(e) e)
           if (verbose) {
             cat(sprintf("%5d :", i))
