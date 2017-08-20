@@ -1,0 +1,328 @@
+---
+title: "Comparing Different Multilevel Bootstrapping Methods"
+author: "Mark Lai"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Comparing Different Multilevel Bootstrapping Methods}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Downloading the Data
+
+Here I use the example data in the book by Hox (2010, p. 17). 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+```
+
+
+```{r}
+library(tidyverse)
+library(haven)
+library(lme4)
+library(boot)
+library(bootmlm)
+popdata <- haven::read_dta(
+  "https://stats.idre.ucla.edu/stat/stata/examples/mlm_ma_hox/popular.dta")
+```
+
+For the interest of time, I will select only 30 schools and a few students in 
+each school:
+
+```{r}
+set.seed(85957)
+pop_sub <- popdata %>% filter(school %in% sample(unique(school), 30)) %>%
+  group_by(school) %>% sample_frac(size = .25) %>% ungroup()
+```
+
+To illustrate doing bootstrapping to obtain standard error (*SE*) and confidence
+interval (CI) for the intraclass correlation (ICC) of the variable `popular`, we
+first fit an intercept only model:
+
+```{r}
+m0 <- lmer(popular ~ (1 | school), data = pop_sub)
+summary(m0)
+```
+
+The intraclass correlation is defined as
+$$\rho = \frac{\tau}{\tau + \sigma^2} = \frac{1}{1 + \sigma^2 / \tau} 
+  = \frac{1}{1 + \theta^{-2}},$$
+where $\theta = \sqrt{\tau} / \sigma$ is the relative cholesky factor for the
+random intercept term used in `lme4`. Therefore, we can estimate the ICC as:
+
+```{r}
+(icc0 <- 1 / (1 + getME(m0, "theta")^(-2)))
+```
+
+So the ICC is quite large for this data set. However, it is important to also
+quantify the uncertainty of a point estimate. Although there are analytic 
+methods to obtain *SE* and CI for ICC, a reliable alternative is to do 
+bootstrapping. We first define the function for computing the test statistic:
+
+```{r}
+icc <- function(x) 1 / (1 + x@theta^(-2))
+icc(m0)
+```
+
+Note that I used the `@` operator for faster extraction. With the `bootmlm`
+package we can perform various bootstrap methods using the `bootstrap_mer()`
+function.
+
+## Parametric Bootstrap
+
+We can run parametric bootstrap, which essentially call the `lme4::bootMer()` 
+function. It's usually recommended to have a large number of bootstrap samples
+($R$), especially for CIs with higher confidence levels. For illustrative 
+purpose I will use $R = 999$, but in general 1,999 or more is recommended
+
+```{r}
+system.time(
+  boo_par <- bootstrap_mer(m0, icc, nsim = 999L, type = "parametric"))
+boo_par
+```
+
+As you can see, the *SE* for the ICC is estimated to be `r sd(boo_par$t)` with
+parametric bootstrap. 
+
+### Confidence interval
+
+With parametric bootstrap there are three ways to construct confidence 
+intervals via the `boot.ci()` function from the `boot` package: normal, 
+basic, and percentile. We can use the following function:
+
+```{r}
+boo_par_ci <- boot::boot.ci(boo_par, type = c("norm", "basic", "perc"), 
+                            index = 1L)
+boo_par_ci
+```
+
+
+## Residual Bootstraps
+
+Whereas parametric bootstrap resamples from independent normal distributions, 
+residual bootstrap samples the residuals. Therefore, residual bootstrap is 
+expected to be more robust to non-normality. `bootmlm` implements three methods
+for residual bootstrap: differentially reflated residual bootstrap, 
+Carpenter-Goldstein-Rashbash's residual bootstrap (CGR; Carpenter et al., 2003),
+and transformational residual bootstrap by van der Leeden, Meijer, and Busin 
+(2008). They are all motivated by the fact that the residuals, generally 
+empirical bayes estimates (denoted as $\tilde u$ and $\tilde e$), are shrinkage
+estimates and have sampling variabilities much smaller than the population
+random effects, $u$ and $e$.
+
+The first residual bootstrap rescale $\tilde u$ and $\tilde e$ so that their
+sampling variabilities match those of $u$ and $e$ as implied by the model 
+estimates. This can be obtained by 
+
+```{r}
+system.time(
+  boo_res <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual"))
+boo_res
+```
+
+As you can see, the *SE* for the ICC is estimated to be `r sd(boo_res$t)` with
+residual bootstrap. 
+
+The second method, CGR, rescale the sample covariance matrix of the 
+*realized values* of the residuals to match the model-implied variance 
+components. This can be obtained by 
+
+```{r}
+system.time(
+  boo_cgr <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual_cgr"))
+boo_cgr
+```
+
+The *SE* is estimated to be `r sd(boo_cgr$t)` with CGR bootstrap. 
+
+The third method first transforms the OLS residuals, $\hat r_{ij} = y_{ij} -
+\boldsymbol{x}_{ij} \hat{\boldsymbol{\beta}}$, by the inverse of cholesky
+factor, $\boldsymbol{L}$, of the model-implied covariance matrix of
+$\boldsymbol{y}$, $\hat{\boldsymbol{V}}$, so that theoretically 
+$\boldsymbol{L}^{-1} (\boldsymbol{y} - \boldsymbol{X \beta})$ should be 
+independent and identically distributed. However, as the true sampling variance
+of $\hat r_{ij}$ is not $\boldsymbol{V}$, I also provide the option
+`corrected_trans = TRUE` to do the transformation using the theoretically
+sampling variability of $\hat r_{ij}$.
+
+```{r}
+# Transformation according to V
+system.time(
+  boo_tra <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual_trans"))
+boo_tra
+# Transformation according to the sampling variance of r
+system.time(
+  boo_trac <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual_trans", 
+                            corrected_trans = TRUE))
+boo_trac
+```
+
+The *SE* is estimated to be `r sd(boo_tra$t)` and `r sd(boo_trac$t)` with
+and without corrections with the transformational residual bootstrap. 
+
+### Confidence interval
+
+With residual bootstrap methods there are four ways to construct confidence 
+intervals via the `boot.ci()` function from the `boot` package, with the 
+addition of the bias-corrected and accelarted bootstrap (BCa). We can use the
+following function:
+
+```{r}
+# First need to compute the influence values
+inf_val <- empinf_mer(m0, icc, index = 1)
+# Residual bootstrap
+boo_res_ci <- boot::boot.ci(boo_res, type = c("norm", "basic", "perc", "bca"), 
+                            index = 1L, L = inf_val)
+boo_res_ci
+# CGR
+boo_cgr_ci <- boot::boot.ci(boo_cgr, type = c("norm", "basic", "perc", "bca"), 
+                            index = 1L, L = inf_val)
+boo_cgr_ci
+# Transformational (no correction)
+boo_tra_ci <- boot::boot.ci(boo_tra, type = c("norm", "basic", "perc", "bca"), 
+                            index = 1L, L = inf_val)
+boo_tra_ci
+# Transformational (with correction)
+boo_trac_ci <- boot::boot.ci(boo_trac, type = c("norm", "basic", "perc", "bca"), 
+                             index = 1L, L = inf_val)
+boo_trac_ci
+```
+
+## Random Effect Block Bootstrap
+
+```{r}
+system.time(
+  boo_reb <- bootstrap_mer(m0, icc, nsim = 999L, type = "reb"))
+boo_reb
+system.time(
+  boo_rebs <- bootstrap_mer(m0, icc, nsim = 999L, type = "reb", 
+                            reb_scale = TRUE))
+boo_rebs
+```
+
+### Confidence interval
+
+```{r}
+# Only sampling clusters
+boo_reb_ci <- boot::boot.ci(boo_reb, type = c("norm", "basic", "perc", "bca"), 
+                            index = 1L, L = inf_val)
+boo_reb_ci
+# Transformational (with correction)
+boo_rebs_ci <- boot::boot.ci(boo_rebs, type = c("norm", "basic", "perc", "bca"), 
+                             index = 1L, L = inf_val)
+boo_rebs_ci
+```
+
+## Case Bootstrap
+
+With case bootstrap, the observed *cases* are sampled with replacement. 
+However, because of the multilevel structure, we need to resample the 
+clusters. Optionally, we can then resample the cases within each cluster
+(using the `lv1_resample = TRUE` argument). Unlike the parametric and 
+residual bootstrap methods, currently `bootmlm` only support the case bootstrap 
+with two levels. 
+
+```{r}
+system.time(
+  boo_cas <- bootstrap_mer(m0, icc, nsim = 999L, type = "case"))
+boo_cas
+system.time(
+  boo_cas1 <- bootstrap_mer(m0, icc, nsim = 999L, type = "case", 
+                            lv1_resample = TRUE))
+boo_cas1
+```
+
+The *SE* for the ICC is estimated to be `r sd(boo_cas$t)` (only sampling 
+clusters) and `r sd(boo_cas1$t)` (sampling also cases) with case bootstrap. 
+
+### Confidence interval
+
+With case bootstrap the supported CIs are: normal, basic, and percentile, and 
+BCa. We can use the following function:
+
+```{r}
+# Only sampling clusters
+boo_cas_ci <- boot::boot.ci(boo_cas, type = c("norm", "basic", "perc", "bca"), 
+                            index = 1L, L = inf_val)
+boo_cas_ci
+# Transformational (with correction)
+boo_cas1_ci <- boot::boot.ci(boo_cas1, type = c("norm", "basic", "perc", "bca"), 
+                             index = 1L, L = inf_val)
+boo_cas1_ci
+```
+
+## Summary
+
+```{r}
+boo_names <- c("parametric", "residual", "cgr", "trans", 
+               "trans (cor)", "REB", "REB (scaled)", 
+               "case (cluster)", "case (c + i)")
+boo_lst <- list(boo_par, boo_res, boo_cgr, boo_tra, boo_trac, 
+                boo_reb, boo_rebs, boo_cas, boo_cas1)
+boo_ci_lst <- list(boo_par_ci, boo_res_ci, boo_cgr_ci, boo_tra_ci, 
+                   boo_trac_ci, boo_reb_ci, boo_rebs_ci, boo_cas_ci, 
+                   boo_cas1_ci)
+get_ci <- function(boo_ci, type) {
+  paste0("(", paste(comma(tail(boo_ci[[type]][1, ], 2L)), collapse = ", "), ")")
+}
+
+data_frame(boot_type = boo_names, boo = boo_lst, boo_ci = boo_ci_lst) %>%
+  mutate(sd = map_chr(boo, ~ comma(sd(.x$t))), 
+         normal = map_chr(boo_ci, ~ get_ci(.x, "normal")), 
+         basic = map_chr(boo_ci, ~ get_ci(.x, "basic")), 
+         percentile = map_chr(boo_ci, ~ get_ci(.x, "percent")), 
+         bca = map_chr(boo_ci, ~ get_ci(.x, "bca"))) %>%
+  select(-boo, -boo_ci)
+```
+
+
+<!-- Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format: -->
+
+<!-- - Never uses retina figures -->
+<!-- - Has a smaller default figure size -->
+<!-- - Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style -->
+
+<!-- ## Vignette Info -->
+
+<!-- Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette. -->
+
+<!-- ## Styles -->
+
+<!-- The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows: -->
+
+<!--     output:  -->
+<!--       rmarkdown::html_vignette: -->
+<!--         css: mystyles.css -->
+
+<!-- ## Figures -->
+
+<!-- The figure sizes have been customised so that you can easily put two images side-by-side.  -->
+
+<!-- ```{r, fig.show='hold'} -->
+<!-- plot(1:10) -->
+<!-- plot(10:1) -->
+<!-- ``` -->
+
+<!-- You can enable figure captions by `fig_caption: yes` in YAML: -->
+
+<!--     output: -->
+<!--       rmarkdown::html_vignette: -->
+<!--         fig_caption: yes -->
+
+<!-- Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**. -->
+
+<!-- ## More Examples -->
+
+<!-- You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`. -->
+
+<!-- ```{r, echo=FALSE, results='asis'} -->
+<!-- knitr::kable(head(mtcars, 10)) -->
+<!-- ``` -->
+
+<!-- Also a quote using `>`: -->
+
+<!-- > "He who gives up [code] safety for [code] speed deserves neither." -->
+<!-- ([via](https://twitter.com/hadleywickham/status/504368538874703872)) -->

@@ -1,0 +1,99 @@
+---
+title: "Comparing Different Multilevel Bootstrapping Methods"
+author: "Mark Lai"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Comparing Different Multilevel Bootstrapping Methods}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Downloading the Data
+
+Here I use the example data in the book by Hox (2010, p. 17). 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+```
+
+
+```{r}
+library(tidyverse)
+library(haven)
+library(lme4)
+library(boot)
+library(bootmlm)
+popdata <- haven::read_dta(
+  "https://stats.idre.ucla.edu/stat/stata/examples/mlm_ma_hox/popular.dta")
+```
+
+For the interest of time, I will select only 20 schools and a few students in 
+each school:
+
+```{r}
+set.seed(85957)
+pop_sub <- popdata %>% filter(school %in% sample(unique(school), 20)) %>%
+  group_by(school) %>% sample_frac(size = .25) %>% ungroup()
+```
+
+To illustrate doing bootstrapping to obtain standard error (*SE*) and confidence
+interval (CI) for the intraclass correlation (ICC) of the variable `popular`, we
+first fit an intercept only model:
+
+```{r}
+m0 <- lmer(popular ~ (1 | school), data = pop_sub)
+summary(m0)
+```
+
+The intraclass correlation is defined as
+$$\rho = \frac{\tau^2}{\tau^2 + \sigma^2} = \frac{1}{1 + \sigma^2 / \tau^2} 
+  = \frac{1}{1 + \theta^{-2}},$$
+where $\theta = \tau / \sigma$ is the relative cholesky factor for the
+random intercept term used in `lme4`. Therefore, we can estimate the ICC as:
+
+```{r}
+(icc0 <- 1 / (1 + getME(m0, "theta")^(-2)))
+```
+
+So the ICC is quite large for this data set. However, it is important to also
+quantify the uncertainty of a point estimate. We can get the asymptotic 
+standard error (ASE) of the ICC using the *delta method*:
+
+```{r}
+# Get the point estimate of theta:
+th_est <- getME(m0, "theta")
+# Get the variance of theta using the bootmlm::vcov_theta() function
+th_var <- bootmlm::vcov_theta(m0)
+# We can get the asymptotic variance of ICC using delta method with an 
+# appropriate transformation. `x1` is the variable name needed for the first
+# variable, which is theta in our case
+icc_avar <- msm::deltamethod(g = ~ 1 / (1 + x1^(-2)), 
+                            mean = th_est, cov = th_var)
+```
+
+So we can get an approximate symmetric CI with 
+
+```{r}
+icc0 + c(-2, 2) * sqrt(icc_avar)
+```
+
+## Bootstrap-$t$ CI
+
+```{r}
+icc <- function(x) {
+  th_est <- x@theta
+  est <- 1 / (1 + th_est^(-2))
+  th_var <- vcov_theta(x)
+  var <- msm::deltamethod(g = ~ 1 / (1 + x1^(-2)), 
+                            mean = th_est, cov = th_var)
+  c(est, var)
+}
+icc(m0)
+boo <- bootstrap_mer(m0, icc, 999L, type = "case")
+# Influence values for BCa
+inf_val <- empinf_mer(m0, icc, index = 1)
+boot::boot.ci(boo, L = inf_val)
+```
+
