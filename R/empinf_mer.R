@@ -39,7 +39,9 @@ empinf_mer <- function(x, FUN, index = 1) {
   th_n <- FUN(x)[index]
   for (j in seq_along(th_noj)) {
     i <- which(gp == levels(gp)[j])
-    m <- lmer(formula_x, data = org_data[-i, ])
+    # m <- lmer(formula_x, data = org_data[-i, ])
+    m_call <- update(x, formula_x, data = org_data[-i, ], evaluate = FALSE)
+    m <- eval(m_call)
     th_noj[j] <- FUN(m)[index]
   }
   th_Jmj <- J * th_n - sum( (1 - 1 / hj) * th_noj)

@@ -161,12 +161,15 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
         # use_REML <- lme4::isREML(x)
         function(i) {
           df_i <- ss[[i]]
-          ret <- tryCatch(
+          ret <- tryCatch({
             # FUN(lmer(formula_x, data = df_i, REML = use_REML,
             #          control = lmerControl(calc.derivs = FALSE))),
-            FUN(update(x, data = df_i,
-                       control = lmerControl(calc.derivs = FALSE))),
-            error = function(e) e)
+            new_call <- update(x, data = df_i,
+                               control = lmerControl(calc.derivs = FALSE),
+                               evaluate = FALSE)
+            FUN(eval(new_call))
+          },
+          error = function(e) e)
           if (verbose) {
             cat(sprintf("%5d :", i))
             utils::str(ret)
