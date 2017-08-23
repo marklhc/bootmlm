@@ -2,9 +2,12 @@
 % Please edit documentation in R/empinf_mer.R
 \name{empinf_mer}
 \alias{empinf_mer}
+\alias{empinf_merm}
 \title{Empirical Influence Values for Two-Level Mixed Models}
 \usage{
 empinf_mer(x, FUN, index = 1)
+
+empinf_merm(x, FUN)
 }
 \arguments{
 \item{x}{A fitted merMod object from \code{\link[lme4]{lmer}}.}
@@ -28,6 +31,10 @@ given fitted model object using the delete-\eqn{m_j} jackknife.
 \code{empinf_mer} computes non-parametric influence function of models
 fitted using \code{\link[lme4]{lmer}} by deleting one cluster at a time. See
 van der Leeden, Meijer, and Busing (2008, pp. 420--422) for more information.
+Whereas \code{empinf_mer} computes influence values for a specified position
+(as specified with the \code{index} argument) of the output of \code{FUN},
+\code{empinf_merm} computes influence values for every element in
+\code{FUN(x)}.
 }
 \examples{
 library(lme4)
@@ -35,6 +42,7 @@ fm01ML <- lmer(Yield ~ (1 | Batch), Dyestuff, REML = FALSE)
 # Define function for intraclass correlation
 icc <- function(x) 1 / (1 + 1 / getME(x, "theta")^2)
 empinf_mer(fm01ML, icc)
+empinf_mer(fm01ML, fixef)
 }
 \references{
 Van der Leeden, R., Meijer, E., & Busing, F. M. T. A. (2008).
