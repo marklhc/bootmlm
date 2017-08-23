@@ -6,15 +6,16 @@ m2 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
             data = cbpp, family = binomial)
 
 mySumm <- function(.) {
-  s <- getME(., "sigma")
-  c(beta = getME(., "beta"), sigma = s, sig01 = unname(s * getME(., "theta")))
+  s <- lme4::getME(., "sigma")
+  c(beta = lme4::getME(., "beta"), sigma = s,
+    sig01 = unname(s * lme4::getME(., "theta")))
 }
 
 NSIM <- 19
 
 test_that("bootstrap_mer(..., type = 'parametric') same as BootMer()", {
   boo1 <- bootstrap_mer(m1, mySumm, nsim = NSIM, seed = 101,
-                        type = 'parametric')
+                        type = "parametric")
   boo2 <- bootMer(m1, mySumm, nsim = NSIM, seed = 101)
   expect_identical(boo1$t, boo2$t)
 })

@@ -9,8 +9,9 @@ m4 <- lmer(angle ~ recipe * temperature + (1 | recipe:replicate), cake,
            REML= FALSE)
 
 mySumm <- function(.) {
-  s <- getME(., "sigma")
-  c(beta = getME(., "beta"), sigma = s, sig01 = unname(s * getME(., "theta")))
+  s <- lme4::getME(., "sigma")
+  c(beta = lme4::getME(., "beta"), sigma = s,
+    sig01 = unname(s * lme4::getME(., "theta")))
 }
 
 NSIM <- 19
