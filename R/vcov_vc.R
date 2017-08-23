@@ -322,10 +322,10 @@ prof_ci_icc <- function(x, level = 0.95) {
   dd_na <- function(x) tryCatch(dd(x), error = function(e) NA)
   th0 <- x@theta
   min_dd <- dd(th0)
-  fup <- function(eps) dd_na(th0 + eps) - min_dd - qchisq(level, 1)
-  ul <- th0 + uniroot(fup, c(0, 1e6))$root
-  flow <- function(eps) dd_na(th0 - eps) - min_dd - qchisq(level, 1)
-  ll <- try(th0 - uniroot(flow, c(0, th0))$root, silent = TRUE)
+  fup <- function(eps) dd_na(th0 + eps) - min_dd - stats:qchisq(level, 1)
+  ul <- th0 + stats::uniroot(fup, c(0, 1e6))$root
+  flow <- function(eps) dd_na(th0 - eps) - min_dd - stats::qchisq(level, 1)
+  ll <- try(th0 - stats::uniroot(flow, c(0, th0))$root, silent = TRUE)
   if (inherits(ll, "try-error")) {
     ll <- 0
   }
