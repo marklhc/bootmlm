@@ -56,6 +56,7 @@ empinf_mer <- function(x, FUN, index = 1) {
 }
 
 #' @rdname empinf_mer
+#' @export
 empinf_merm <- function(x, FUN) {
   if (length(x@flist) > 1) {
     stop("currently can only compute influence values with two levels")

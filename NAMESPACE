@@ -3,6 +3,7 @@
 export(bootstrap_mer)
 export(devfun_mer)
 export(empinf_mer)
+export(empinf_merm)
 export(scores_mer)
 export(vcov_theta)
 export(vcov_vc)

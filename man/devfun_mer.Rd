@@ -2,9 +2,12 @@
 % Please edit documentation in R/vcov_vc.R
 \name{devfun_mer}
 \alias{devfun_mer}
+\alias{devfun_mer2}
 \title{Deviance Function for Multilevel Models}
 \usage{
 devfun_mer(x)
+
+devfun_mer2(x)
 }
 \arguments{
 \item{x}{A fitted merMod object from \code{\link[lme4]{lmer}}.}

@@ -256,3 +256,80 @@ devfun_mer <- function(x) {
     }
   })
 }
+
+#' @rdname devfun_mer
+devfun_mer2 <- function(x) {
+  res <- x@resp
+  offset <- res$offset
+  y <- res$y
+  PR <- x@pp
+  X <- PR$X
+  Zt <- PR$Zt
+  n <- length(y)
+  n_th <- length(x@theta)
+
+  sqrtW <- Matrix::Diagonal(x = res$weights)
+  WX <- sqrtW %*% X
+  Wy <- sqrtW %*% y
+  ZtW <- Zt %*% sqrtW
+  XtWX <- crossprod(WX)
+  XtWy <- crossprod(WX, Wy)
+  ZtWX <- ZtW %*% WX
+  ZtWy <- ZtW %*% Wy
+
+  REML <- lme4::isREML(x)
+  Lind <- PR$Lind
+
+  local({  # mutable values stored in local environment
+    Lambdat <- PR$Lambdat
+    L <- Matrix::Cholesky(tcrossprod(Lambdat %*% ZtW), LDL = FALSE, Imult = 1)
+    df <- n
+
+    function(theta) {
+      Lambdat@x <- theta[Lind]
+      L <- Matrix::update(L, Lambdat %*% ZtW, mult = 1)
+      cu <- Matrix::solve(L, Matrix::solve(L, Lambdat %*% ZtWy, system = "P"),
+                          system = "L")
+      RZX <- Matrix::solve(L, Matrix::solve(L, Lambdat %*% ZtWX, system = "P"),
+                           system = "L")
+      RXtRX <- as(XtWX - crossprod(RZX), "dpoMatrix")
+      betahat <- Matrix::solve(RXtRX, XtWy - crossprod(RZX, cu))
+      u <- Matrix::solve(L,
+                         Matrix::solve(L, cu - RZX %*% betahat, system = "Lt"),
+                         system = "Pt")
+      b <- crossprod(Lambdat, u)
+      mu <- crossprod(Zt, b) + X %*% betahat + offset
+      wtres <- sqrtW %*% (y - mu)
+      pwrss <- sum(wtres^2) + sum(u^2)
+      logDet <- 2 * Matrix::determinant(L, logarithm = TRUE)$modulus
+      if (REML) {
+        logDet <- logDet + Matrix::determinant(RXtRX, logarithm = TRUE)$modulus
+        df <- df - length(betahat)
+      }
+      attributes(logDet) <- NULL
+      logDet + df * (1 + log(2 * pi * pwrss) - log(df))
+    }
+  })
+}
+
+format_perc <- function (probs, digits = 3) {
+  paste(format(100 * probs, trim = TRUE, scientific = FALSE,
+               digits = digits), "%")
+}
+
+prof_ci_icc <- function(x, level = 0.95) {
+  dd <- devfun_mer2(x)
+  th0 <- x@theta
+  min_dd <- dd(th0)
+  fup <- function(eps) dd(th0 + eps) - min_dd - qchisq(level, 1)
+  ul <- th0 + uniroot(fup, c(0, 1e4))$root
+  flow <- function(eps) dd(th0 - eps) - min_dd - qchisq(level, 1)
+  ll <- try(th0 - uniroot(flow, c(0, th0))$root, silent = TRUE)
+  if (inherits(ll, "try-error")) {
+    ll <- 0
+  }
+  out <- 1 / (1 + c(ll, ul)^(-2))
+  a <- .5 + c(-1, 1) * level / 2
+  names(out) <- format_perc(a)
+  out
+}
