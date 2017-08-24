@@ -187,7 +187,9 @@ vcov_theta <- function(x) {
 #' @param x A fitted merMod object from \code{\link[lme4]{lmer}}.
 #' @return A deviance function with one argument \code{th_sig} that takes input
 #'   of a numeric vector corresponding to the some estimated values of
-#'   \eqn{\theta} and \eqn{\sigma}
+#'   \eqn{\theta} and \eqn{\sigma}. For \code{devfun_mer2}, a function with
+#'   one argument \code{theta} that profiles out \eqn{\sigma} and only takes
+#'   input of elements for \eqn{\theta}.
 #' @references Bates, D., M\"{a}chler, M., Bolker, B. M., & Walker, S. C.
 #'   Fitting linear mixed-effects models using lme4. Retrieved from
 #'   \url{https://cran.r-project.org/web/packages/lme4/vignettes/lmer.pdf}
@@ -310,27 +312,4 @@ devfun_mer2 <- function(x) {
       logDet + df * (1 + log(2 * pi * pwrss) - log(df))
     }
   })
-}
-
-format_perc <- function (probs, digits = 3) {
-  paste(format(100 * probs, trim = TRUE, scientific = FALSE,
-               digits = digits), "%")
-}
-
-prof_ci_icc <- function(x, level = 0.95) {
-  dd <- devfun_mer2(x)
-  dd_na <- function(x) tryCatch(dd(x), error = function(e) NA)
-  th0 <- x@theta
-  min_dd <- dd(th0)
-  fup <- function(eps) dd_na(th0 + eps) - min_dd - stats::qchisq(level, 1)
-  ul <- th0 + stats::uniroot(fup, c(0, 1e6))$root
-  flow <- function(eps) dd_na(th0 - eps) - min_dd - stats::qchisq(level, 1)
-  ll <- try(th0 - stats::uniroot(flow, c(0, th0))$root, silent = TRUE)
-  if (inherits(ll, "try-error")) {
-    ll <- 0
-  }
-  out <- 1 / (1 + c(ll, ul)^(-2))
-  a <- .5 + c(-1, 1) * level / 2
-  names(out) <- format_perc(a)
-  out
 }

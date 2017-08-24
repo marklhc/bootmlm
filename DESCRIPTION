@@ -1,7 +1,7 @@
 Package: bootmlm
 Type: Package
 Title: Bootstrap Resampling for Multilevel Models
-Version: 0.0.0.9100
+Version: 0.0.0.9200
 Authors@R: person("Mark", "Lai", email = "marklhc@gmail.com", 
                   role = c("aut", "cre"))
 Description: An implementation of functions for bootstrapping with multilevel 
@@ -21,7 +21,10 @@ Suggests:
     nlme,
     testthat,
     knitr,
-    rmarkdown
+    rmarkdown, 
+    haven, 
+    msm, 
+    tidyverse
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

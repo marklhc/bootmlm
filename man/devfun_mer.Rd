@@ -15,7 +15,9 @@ devfun_mer2(x)
 \value{
 A deviance function with one argument \code{th_sig} that takes input
   of a numeric vector corresponding to the some estimated values of
-  \eqn{\theta} and \eqn{\sigma}
+  \eqn{\theta} and \eqn{\sigma}. For \code{devfun_mer2}, a function with
+  one argument \code{theta} that profiles out \eqn{\sigma} and only takes
+  input of elements for \eqn{\theta}.
 }
 \description{
 Creates a deviance function for a fitted model object, using \eqn{\theta}
