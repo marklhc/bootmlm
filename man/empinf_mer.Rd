@@ -13,8 +13,7 @@ empinf_merm(x, FUN)
 \item{x}{A fitted merMod object from \code{\link[lme4]{lmer}}.}
 
 \item{FUN}{A function taking a fitted merMod object as input and returning
-the statistic of interest, which must be a (possibly named) numeric vector
-of length 1.}
+the statistic of interest.}
 
 \item{index}{An integer stating the position of the statistic in the output of
 \code{FUN(x)}.}

@@ -12,8 +12,7 @@
 #' \code{FUN(x)}.
 #' @param x A fitted merMod object from \code{\link[lme4]{lmer}}.
 #' @param FUN A function taking a fitted merMod object as input and returning
-#'   the statistic of interest, which must be a (possibly named) numeric vector
-#'   of length 1.
+#'   the statistic of interest.
 #' @param index An integer stating the position of the statistic in the output of
 #'   \code{FUN(x)}.
 #' @return A numeric vector with length equals to number of clusters of
@@ -37,13 +36,14 @@ empinf_mer <- function(x, FUN, index = 1) {
   th_noj <- rep(NA, J)
   n <- nobs(x)
   gp <- x@flist[[1]]
-  nj <- as.vector(unname(table(gp)))
+  gp_lv <- levels(gp)
+  nj <- as.vector(unname(table(gp, dnn = NULL)))
   hj <- n / nj
   formula_x <- formula(x)
   org_data <- x@frame
   th_n <- FUN(x)[index]
   for (j in seq_along(th_noj)) {
-    i <- which(gp == levels(gp)[j])
+    i <- which(gp == gp_lv[j])
     # m <- lmer(formula_x, data = org_data[-i, ])
     m_call <- update(x, formula_x, data = org_data[-i, ], evaluate = FALSE)
     m <- eval(m_call)
@@ -64,22 +64,21 @@ empinf_merm <- function(x, FUN) {
   J <- lme4::ngrps(x)[[1]]
   n <- nobs(x)
   gp <- x@flist[[1]]
-  nj <- as.vector(unname(table(gp)))
+  gp_lv <- levels(gp)
+  nj <- as.vector(unname(table(gp, dnn = NULL)))
   hj <- n / nj
   formula_x <- formula(x)
   org_data <- x@frame
   th_n <- FUN(x)
   th_noj <- matrix(NA, nrow = J, ncol = length(th_n))
   for (j in seq_len(J)) {
-    i <- which(gp == levels(gp)[j])
-    # m <- lmer(formula_x, data = org_data[-i, ])
+    i <- which(gp == gp_lv[j])
     m_call <- update(x, formula_x, data = org_data[-i, ], evaluate = FALSE)
     m <- eval(m_call)
     th_noj[j, ] <- FUN(m)
   }
   th_Jmj <- J * th_n - colSums( (1 - 1 / hj) * th_noj)
   th_tilde <- tcrossprod(hj, th_n) - (hj - 1) * th_noj
-  # (hj - 1) * (th_Jmj - th_tilde)
   (hj - 1) * t(t(th_tilde) - th_Jmj)
 }
 
@@ -93,14 +92,5 @@ empinf_mer_old <- function(x, FUN) {
     m <- lmer(formula(x), data = x@frame[-i, ])
     lj[j] <- (1 - nj / n) * FUN(m)
   }
-  # lj <- lj - FUN(x)
-  # sum(lj^3) / sum(lj^2)^1.5 / 6
-  lj - FUN(x)
+  FUN(x) - lj
 }
-
-# Example (Not run):
-# fm1 <- lmer(Reaction ~ Days + (Days | Subject), sleepstudy)
-# ff <- function(x) x@theta[1] / sigma(x)
-# boo_fm1 <- bootMer(fm1, FUN = ff, nsim = 999)
-# boot.ci(boo_fm1, type = c("norm", "basic", "perc"))
-# boot.ci(boo_fm1, type = c("bca"), L = empinf.merMod(fm1, ff))
