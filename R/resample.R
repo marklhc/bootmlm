@@ -1,3 +1,7 @@
+sample_re <- function(x, replace = TRUE, ...) {
+  x[sample.int(length(x), replace = replace, ...)]
+}
+
 #' @importFrom Matrix crossprod tcrossprod t mean
 #' @importFrom stats nobs resid runif sd sigma hatvalues model.matrix
 .resid_resample <- function(x, nsim = 1, seed = NULL,
@@ -113,7 +117,7 @@
 }
 
 case_newsample1 <- function(data, N, group, uniq_gp, gp_length, fname) {
-  new_index2 <- c(sample(uniq_gp, replace = TRUE))
+  new_index2 <- c(sample_re(uniq_gp))
   new_index1 <- lapply(new_index2, function(i) seq_len(N)[group == i])
   group_length <- gp_length[new_index2]
   new_group <- rep(seq_along(new_index2), group_length)
@@ -124,10 +128,10 @@ case_newsample1 <- function(data, N, group, uniq_gp, gp_length, fname) {
 }
 
 case_newsample2 <- function(data, N, group, uniq_gp, gp_length, fname) {
-  new_index2 <- c(sample(uniq_gp, replace = TRUE))
+  new_index2 <- c(sample_re(uniq_gp, replace = TRUE))
   new_index1 <- lapply(new_index2,
-                       function(i) sample(seq_len(N)[group == i],
-                                          replace = TRUE))
+                       function(i) sample_re(seq_len(N)[group == i],
+                                             replace = TRUE))
   group_length <- gp_length[new_index2]
   new_group <- rep(seq_along(new_index2), group_length)
   new_data <- data[unlist(new_index1), , drop = FALSE]
