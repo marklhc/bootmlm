@@ -45,13 +45,16 @@ vc <- VarCorr(fm1)
 print(vc, comp = c("Std.Dev"))
 # Asymptotic variance-covariance matrix of (tau, sigma):
 vcov_vc(fm1, sd_cor = TRUE)
-# Compare with (parametric) bootstrap results :
+
+\dontrun{
+#' # Compare with (parametric) bootstrap results :
 get_sdcor <- function(x) {
   as.data.frame(lme4::VarCorr(x), order = "lower.tri")[ , "sdcor"]
 }
 boo <- bootstrap_mer(fm1, get_sdcor, type = "parametric", nsim = 200L)
 # There might be failures in some resamples
 cov(boo$t, use = "complete.obs")
+}
 }
 \seealso{
 \code{\link[lme4]{vcov.merMod}} for covariance matrix of fixed

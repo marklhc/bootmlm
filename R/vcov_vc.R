@@ -72,13 +72,16 @@
 #' print(vc, comp = c("Std.Dev"))
 #' # Asymptotic variance-covariance matrix of (tau, sigma):
 #' vcov_vc(fm1, sd_cor = TRUE)
-#' # Compare with (parametric) bootstrap results :
+#'
+#' \dontrun{
+#' #' # Compare with (parametric) bootstrap results :
 #' get_sdcor <- function(x) {
 #'   as.data.frame(lme4::VarCorr(x), order = "lower.tri")[ , "sdcor"]
 #' }
 #' boo <- bootstrap_mer(fm1, get_sdcor, type = "parametric", nsim = 200L)
 #' # There might be failures in some resamples
 #' cov(boo$t, use = "complete.obs")
+#' }
 vcov_vc <- function(x, sd_cor = TRUE, print_names = TRUE) {
   if (!lme4::isLMM(x)) {
     stop("currently only linear mixed model of class `merMod` is supported")
