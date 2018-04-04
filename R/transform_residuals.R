@@ -33,7 +33,7 @@ solve_eigen_sqrt <- function(M, b) {
   dsqrtinv <- 1 / sqrt(d)
   dsqrtinv[d == 0] <- 0
   V <- ei$vectors
-  Msqrtinv <- V %*% diag(dsqrtinv) %*% t(V)
+  Msqrtinv <- V %*% diag(dsqrtinv, nrow = length(d)) %*% t(V)
   Msqrtinv %*% b
 }
 
