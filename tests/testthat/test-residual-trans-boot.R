@@ -1,3 +1,5 @@
+context("transformational residual bootstrap")
+
 library(nlme)
 library(lme4)
 library(boot)

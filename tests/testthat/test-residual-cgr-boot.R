@@ -1,3 +1,5 @@
+context("Residual (CGR) bootstrap")
+
 library(nlme)
 library(lme4)
 library(boot)

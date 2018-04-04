@@ -1,3 +1,5 @@
+context("Case bootstrap")
+
 library(nlme)
 library(lme4)
 library(boot)

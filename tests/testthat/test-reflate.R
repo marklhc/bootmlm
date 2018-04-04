@@ -1,3 +1,5 @@
+context("Reflating residuals")
+
 library(nlme)
 library(lme4)
 

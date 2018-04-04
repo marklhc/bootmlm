@@ -1,3 +1,5 @@
+context("Random effect block bootstrap")
+
 library(nlme)
 library(lme4)
 library(boot)

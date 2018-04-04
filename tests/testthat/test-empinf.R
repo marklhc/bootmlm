@@ -1,3 +1,5 @@
+context("Empirical influence function")
+
 library(lme4)
 
 m1 <- lmer(Yield ~ (1 | Batch), Dyestuff, REML = FALSE)

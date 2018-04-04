@@ -1,3 +1,5 @@
+context("Residual bootstrap")
+
 library(nlme)
 library(lme4)
 library(boot)

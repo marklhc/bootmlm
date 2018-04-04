@@ -1,17 +1,17 @@
 Package: bootmlm
 Type: Package
 Title: Bootstrap Resampling for Multilevel Models
-Version: 0.0.0.9200
+Version: 0.0.1
 Authors@R: person("Mark", "Lai", email = "marklhc@gmail.com", 
                   role = c("aut", "cre"))
 Description: An implementation of functions for bootstrapping with multilevel 
     data and models (and mixed-effect models). It implements multiple 
     bootstrap methods under the parametric, residual, and case bootstrap 
     categories. Currently it supports fitted objects from the lme4 package.
-Depends: R (>= 3.1.0)
+Depends: R (>= 3.4.4)
 Imports:
-    lme4 (>= 1.1-13), 
-    Matrix (>= 1.2-10), 
+    lme4 (>= 1.1-16), 
+    Matrix (>= 1.2-11), 
     methods, 
     numDeriv,
     stats, 
