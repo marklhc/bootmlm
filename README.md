@@ -9,7 +9,7 @@ on GitHub:
 if (!require("devtools")) {
   install.packages("devtools")
 }
-devtools::install_github("marklhc/bootmlm")
+devtools::install_github("marklhc/bootmlm", ref = "weighted_boot")
 ```
 
 ## Example
