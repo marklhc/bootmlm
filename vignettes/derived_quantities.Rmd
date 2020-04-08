@@ -1,10 +1,10 @@
 ---
-title: "Comparing Different Multilevel Bootstrapping Methods"
+title: "Using Multilevel Bootstrap for Derived Quantities"
 author: "Mark Lai"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Comparing Different Multilevel Bootstrapping Methods}
+  %\VignetteIndexEntry{Using Multilevel Bootstrap for Derived Quantities}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -70,7 +70,7 @@ th_var <- bootmlm::vcov_theta(m0)
 # appropriate transformation. `x1` is the variable name needed for the first
 # variable, which is theta in our case
 icc_avar <- msm::deltamethod(g = ~ 1 / (1 + x1^(-2)), 
-                            mean = th_est, cov = th_var)
+                            mean = th_est, cov = th_var, ses = FALSE)
 ```
 
 So we can get an approximate symmetric CI with 
@@ -81,13 +81,13 @@ icc0 + c(-2, 2) * sqrt(icc_avar)
 
 ## Bootstrap-$t$ CI
 
-```{r}
+```{r, cache=TRUE, cach.vars="boo"}
 icc <- function(x) {
   th_est <- x@theta
   est <- 1 / (1 + th_est^(-2))
   th_var <- vcov_theta(x)
   var <- msm::deltamethod(g = ~ 1 / (1 + x1^(-2)), 
-                            mean = th_est, cov = th_var)
+                            mean = th_est, cov = th_var, ses = FALSE)
   c(est, var)
 }
 icc(m0)
@@ -97,3 +97,30 @@ inf_val <- empinf_mer(m0, icc, index = 1)
 boot::boot.ci(boo, L = inf_val)
 ```
 
+## On a Transformed Scale
+
+Because ICC is bounded between $-1$ and 1, and commonly between 0 and 1, 
+a potentially better approach to construct a confidence interval for ICC is 
+to first transform it so that the sampling distribution is closer to normal. 
+As stated in Ukoumunne, Davison, Gulliford, and Chinn (2003), one can use 
+apply a transformation:
+$$h(t) = \log(\frac{\hat \rho}{1 - \hat \rho})$$
+
+You can compare the distribution before and after transformation:
+
+```{r, out.width="80%", fig.height=4, fig.width=4}
+hist(boo$t[ , 1])
+hist(-log(1 / boo$t[ , 1] - 1))
+```
+
+
+One can obtain the CI on the transformed scale, and then scale it back to 
+the original ICC scale:
+
+```{r}
+boot::boot.ci(boo, L = inf_val, h = qlogis, 
+              hdot = function(x) 1 / (x - x^2), 
+              hinv = plogis)
+```
+
+Note: Percentile and BCa intervals are invariant to 1-1 transformation. 

@@ -3,7 +3,6 @@
 \docType{package}
 \name{bootmlm}
 \alias{bootmlm}
-\alias{bootmlm-package}
 \title{bootmlm: A package for bootstrap resampling with multilevel data.}
 \description{
 Currently, the \code{\link[lme4]{bootMer}()} function in the \pkg{lme4}

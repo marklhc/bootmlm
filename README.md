@@ -2,14 +2,10 @@
 
 The `bootmlm` package does bootstrap resampling for multilevel models. 
 Currently only models fitted with `lme4::lmer()` is supported. It's still in 
-developmental stage and is not yet on CRAN. However, you can install the package
-on GitHub:
+developmental stage and is not yet on CRAN. However, you can install the package on GitHub:
 
 ```r
-if (!require("devtools")) {
-  install.packages("devtools")
-}
-devtools::install_github("marklhc/bootmlm")
+remotes::install_github("marklhc/bootmlm")
 ```
 
 See [this paper](https://quantscience.rbind.io/files/Lai_2020_mbr_bootstrap_mlm_effectsize_am.pdf) for a performance comparison of different bootstrapped confidence
