@@ -118,6 +118,8 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
       stop("currently only handles functions that return numeric vectors")
     }
 
+    conds <- list()
+
     # can use the switch function
     if (type %in% c("residual", "residual_cgr", "residual_trans", "reb")) {
       mle <- list(beta = x@beta, theta = x@theta)
@@ -135,8 +137,15 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
         ss
         verbose
         length_t0 <- length(t0)
+        add_cond <- function(cnd) {
+          conds <<- append(conds, list(cnd))
+          rlang::cnd_muffle(cnd)
+        }
         function(i) {
-          ret <- tryCatch(FUN(refit(x, ss[[i]])),
+          ret <- tryCatch(
+            withCallingHandlers(message = add_cond,
+                                warning = add_cond,
+                                FUN(refit(x, ss[[i]]))),
                           error = function(e) e)
           if (verbose) {
             cat(sprintf("%5d :", i))
@@ -161,16 +170,29 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
         ss
         verbose
         length_t0 <- length(t0)
+        add_cond <- function(cnd) {
+          conds <<- append(conds, list(cnd))
+          rlang::cnd_muffle(cnd)
+        }
         # use_REML <- lme4::isREML(x)
         function(i) {
           df_i <- ss[[i]]
           ret <- tryCatch({
             # FUN(lmer(formula_x, data = df_i, REML = use_REML,
             #          control = lmerControl(calc.derivs = FALSE))),
-            new_call <- update(x, data = df_i,
-                               control = lmerControl(calc.derivs = FALSE),
-                               evaluate = FALSE)
-            FUN(eval(new_call))
+            # Need:
+            # Function to parse messages/warnings (mainsim)
+            # Functions to print messages/warnings as a summary (bootMer)
+            withCallingHandlers(message = add_cond,
+                                warning = add_cond,
+                                {
+                                  new_call <-
+                                    update(x, data = df_i,
+                                           control = lmerControl(
+                                             calc.derivs = FALSE),
+                                           evaluate = FALSE)
+                                  FUN(eval(new_call))
+                                })
           },
           error = function(e) e)
           if (verbose) {
@@ -191,6 +213,27 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
     # t.star <- matrix(unlist(res), nsim, length(t0), byrow = TRUE)
     # colnames(t.star) <- names(t0)
     t.star <- do.call(rbind, res)
+
+    # Return messages and warnings
+    msgs <- conds[vapply(conds, inherits, "message", FUN.VALUE = logical(1L))]
+    warns <- conds[vapply(conds, inherits, "warning", FUN.VALUE = logical(1L))]
+    if (length(msgs) > 0) {
+      msg_lst <- sapply(seq_along(msgs), function(i, cnd) {
+        paste("message(s) :", cnd[[i]]$message)
+      }, cnd = msgs)
+    } else {
+      msg_lst <- NULL
+    }
+    if (length(warns) > 0) {
+      warn_lst <- sapply(seq_along(warns), function(i, cnd) {
+        paste("warning(s) in", paste0(deparse(cnd[[i]]$call), collapse = ""),
+              ":", cnd[[i]]$message)
+      }, cnd = warns)
+    } else {
+      warn_lst <- NULL
+    }
+    msg_tab <- table(c(warn_lst, msg_lst))
+    message(paste(msg_tab, names(msg_tab), collapse = "\n"))
 
     # Number of failed bootstrap
 
