@@ -14,7 +14,8 @@ bootstrap_mer(
   lv1_resample = FALSE,
   reb_scale = FALSE,
   .progress = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 
 bootstrap_mer(
@@ -27,7 +28,8 @@ bootstrap_mer(
   lv1_resample = FALSE,
   reb_scale = FALSE,
   .progress = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 }
 \arguments{
@@ -63,6 +65,8 @@ random effect block bootstrap}
 \code{\link[utils]{txtProgressBar}}).}
 
 \item{verbose}{Logical indicating if progress should print output.}
+
+\item{...}{argument passed to .resid_resample.}
 }
 \value{
 An object of S3 class "boot", compatible with \pkg{boot} package's

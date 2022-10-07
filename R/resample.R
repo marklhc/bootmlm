@@ -5,6 +5,7 @@ sample_re <- function(x, replace = TRUE, ...) {
 #' @importFrom Matrix crossprod tcrossprod t mean
 #' @importFrom stats nobs resid runif sd sigma hatvalues model.matrix
 .resid_resample <- function(x, nsim = 1, seed = NULL,
+                            w1 = NULL, w2 = NULL,
                             type = c("residual", "residual_cgr",
                                      "residual_trans"),
                             corrected = FALSE) {
@@ -58,7 +59,8 @@ sample_re <- function(x, replace = TRUE, ...) {
 
     ss <- replicate(nsim, {
       as.vector(fixed +
-                  crossprod(R, Zeta[sample.int(length(Zeta), replace = TRUE)]))
+                  crossprod(R, Zeta[sample.int(length(Zeta),
+                                               replace = TRUE, prob = w1)]))
     },
     simplify = FALSE)
   } else if (type %in% c("residual", "residual_cgr")) {
@@ -72,11 +74,12 @@ sample_re <- function(x, replace = TRUE, ...) {
     ss <- replicate(nsim, {
       # faster!, and easier to read
       bstar_new <- unlist(lapply(ml, function(m) {
-        m[ , sample.int(ncol(m), replace = TRUE)]
+        m[ , sample.int(ncol(m), replace = TRUE, prob = w2)]
       }))
 
       as.vector(fixed + crossprod(Zt, bstar_new) +
-                  estar[sample.int(length(estar), replace = TRUE)])
+                  estar[sample.int(length(estar), replace = TRUE,
+                                   prob = w1)])
     },
     simplify = FALSE)
   }

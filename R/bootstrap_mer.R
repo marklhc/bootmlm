@@ -29,6 +29,7 @@
 #' @param .progress Logical indicating whether to display progress bar (using
 #'   \code{\link[utils]{txtProgressBar}}).
 #' @param verbose Logical indicating if progress should print output.
+#' @param ... argument passed to .resid_resample.
 #' @return An object of S3 class \code{"boot"}, compatible with \pkg{boot}
 #'   package's \code{\link[boot]{boot}()}. It contains the following components:
 #'
@@ -91,7 +92,8 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
                           corrected_trans = FALSE,
                           lv1_resample = FALSE,
                           reb_scale = FALSE,
-                          .progress = FALSE, verbose = FALSE) {
+                          .progress = FALSE, verbose = FALSE,
+                          ...) {
   type <- match.arg(type)
   if (type == "parametric") {
     return(lme4::bootMer(x, FUN, nsim, seed = seed, use.u = FALSE,
@@ -125,7 +127,8 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
       if (type == "reb") {
         ss <- .reb_resample(x, nsim, scale = reb_scale)
       } else {
-        ss <- .resid_resample(x, nsim, type = type, corrected = corrected_trans)
+        ss <- .resid_resample(x, nsim, type = type, corrected = corrected_trans,
+                              ...)
       }
       ffun <- local({
         FUN

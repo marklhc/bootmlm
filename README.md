@@ -5,6 +5,9 @@ Currently only models fitted with `lme4::lmer()` is supported. It's still in
 developmental stage and is not yet on CRAN. However, you can install the package on GitHub:
 
 ```r
+if (!require("remotes")) {
+  install.packages("remotes")
+}
 remotes::install_github("marklhc/bootmlm")
 ```
 
