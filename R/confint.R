@@ -29,17 +29,6 @@
 #' # residual bootstrap
 #' boo_resid <- bootstrap_mer(fm01ML, mySumm, type = "residual", nsim = 100)
 #' confint(boo_resid, type = "bca", L = empinf_merm(fm01ML, mySumm))
-
-# parametric bootstrap
-boo_parametric <- bootstrap_mer(fm01ML, mySumm, type = "parametric", nsim = 100)
-class(boo_parametric) # returns "bootMer" "boot"
-confint(boo_parametric, type = "norm") # returns a confidence interval
-
-# residual bootstrap
-boo_resid <- bootstrap_mer(fm01ML, mySumm, type = "residual", nsim = 100)
-class(boo_resid) # returns "boot"
-confint(boo_resid, type = "norm") # does not work
-boot.ci(boo_resid, type = "norm") # kind of works but only for one value at a time
 confint.boot <- function(object, parm,
                          level = 0.95,
                          type = c("norm", "basic", "perc", "bca"),

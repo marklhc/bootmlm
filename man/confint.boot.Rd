@@ -40,3 +40,14 @@ This is a wrapper for getting CIs for multiple parameters after running
 \code{\link{bootstrap_mer}}, to be consistent with a similar method for the
 \code{\link[lme4]{bootMber}} class.
 }
+\examples{
+library(lme4)
+fm01ML <- lmer(Yield ~ (1 | Batch), Dyestuff, REML = FALSE)
+mySumm <- function(x) {
+  c(getME(x, "beta"), sigma(x))
+}
+
+# residual bootstrap
+boo_resid <- bootstrap_mer(fm01ML, mySumm, type = "residual", nsim = 100)
+confint(boo_resid, type = "bca", L = empinf_merm(fm01ML, mySumm))
+}
