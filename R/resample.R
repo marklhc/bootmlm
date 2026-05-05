@@ -157,7 +157,7 @@ case_newsample2 <- function(data, N, group, uniq_gp, gp_length, fname) {
   }
   group <- as.numeric(x@flist[[1]])
   uniq_gp <- unique(group)
-  gp_length <- unname(table(group))
+  gp_length <- tabulate(group)
   N <- nobs(x)
   org_data <- x@frame
   fname <- names(x@flist[1])

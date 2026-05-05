@@ -1,4 +1,3 @@
-context("Expected behaviors")
 
 library(lme4)
 library(boot)

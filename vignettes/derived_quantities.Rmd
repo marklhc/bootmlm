@@ -20,13 +20,13 @@ comma <- function(x) format(x, digits = 2, big.mark = ",")
 
 
 ```{r}
-library(tidyverse)
+library(dplyr)
 library(haven)
 library(lme4)
 library(boot)
 library(bootmlm)
 popdata <- haven::read_dta(
-  "https://stats.idre.ucla.edu/stat/stata/examples/mlm_ma_hox/popular.dta")
+  "https://stats.oarc.ucla.edu/stat/stata/examples/mlm_ma_hox/popular.dta")
 ```
 
 For the interest of time, I will select only 20 schools and a few students in 
@@ -34,8 +34,8 @@ each school:
 
 ```{r}
 set.seed(85957)
-pop_sub <- popdata %>% filter(school %in% sample(unique(school), 20)) %>%
-  group_by(school) %>% sample_frac(size = .25) %>% ungroup()
+pop_sub <- popdata |> filter(school %in% sample(unique(school), 20)) |>
+  group_by(school) |> sample_frac(size = .25) |> ungroup()
 ```
 
 To illustrate doing bootstrapping to obtain standard error (*SE*) and confidence
@@ -81,7 +81,7 @@ icc0 + c(-2, 2) * sqrt(icc_avar)
 
 ## Bootstrap-$t$ CI
 
-```{r, cache=TRUE, cach.vars="boo"}
+```{r, cache=TRUE, cache.vars="boo"}
 icc <- function(x) {
   th_est <- x@theta
   est <- 1 / (1 + th_est^(-2))

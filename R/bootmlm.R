@@ -20,6 +20,5 @@
 #'   \code{\link{empinf_mer}()}) only supports two-level models.
 #' }
 #'
-#' @docType package
-#' @name bootmlm
-NULL
+#' @keywords internal
+"_PACKAGE"

@@ -36,7 +36,7 @@ dd <- devfun_mer(fm01ML)
 2 * solve(numDeriv::hessian(dd, c(fm01ML@theta, sigma(fm01ML))))
 }
 \references{
-Bates, D., M\"{a}chler, M., Bolker, B. M., & Walker, S. C.
+Bates, D., Maechler, M., Bolker, B. M., & Walker, S. C.
   Fitting linear mixed-effects models using lme4. Retrieved from
   \url{https://cran.r-project.org/web/packages/lme4/vignettes/lmer.pdf}
 

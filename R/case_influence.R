@@ -9,7 +9,7 @@ scores_mer <- function(x, level = 2) {
   if (!lme4::isLMM(x)) {
     stop("currently only linear mixed model of class `merMod` is supported")
   }
-  if (length(x@flist) > 1 & level == 2) {
+  if (length(x@flist) > 1 && level == 2) {
     stop("set `level = 1` for models with multiple clustering levels")
   }
   # Extract required components
@@ -67,7 +67,7 @@ scores_mer <- function(x, level = 2) {
   #   colnames(d2_out)[-(1:nfixed)] <- vc_names
   colnames(score_out)[- (1:nfixed)] <- vc_names
   if (level == 2) {
-    Zt_clus <- as(x@flist[[1]], Class = "sparseMatrix")
+    Zt_clus <- Matrix::fac2sparse(x@flist[[1]])
     score_out <- Zt_clus %*% score_out
     # d2_out <- Zt_clus %*% d2_out
   }
@@ -75,47 +75,3 @@ scores_mer <- function(x, level = 2) {
   # list(score = score_out, d2 = d2_out)
   score_out
 }
-
-# inf_jack <- function(x) {
-#   eps <- 1e-6
-#   w_org <- (x@resp$weights - eps)
-#   gp <- m1@flist[[1]]
-#   uniq_gp <- unique(gp)
-#   lj <- numeric(length(uniq_gp))
-#   for (i in seq_along(lj)) {
-#     w <- w_org
-#     this_gp <- seq_len(nobs(x))[gp == uniq_gp[i]]
-#     w[this_gp] <- w[this_gp] + nobs(x) / length(this_gp) * eps
-#     # up_x <- update(x, data = x@frame, weights = w)
-#     up_x <- update_w(x, weights = w)
-#     lj[i] <- (fixef(x)[2] - fixef(up_x)[2]) / eps
-#   }
-#   lj
-# }
-#
-# update_w <- function (object, weights.)
-# {
-#   if (is.null(call <- getCall(object)))
-#     stop("object should contain a 'call' component")
-#   call$weights <- weights.
-#   eval(call)
-#   # if (length(extras) > 0) {
-#   #   existing <- !is.na(match(names(extras), names(call)))
-#   #   for (a in names(extras)[existing]) call[[a]] <- extras[[a]]
-#   #   if (any(!existing)) {
-#   #     call <- c(as.list(call), extras[!existing])
-#   #     call <- as.call(call)
-#   #   }
-#   # }
-#   # if (evaluate) {
-#   #   ff <- environment(formula(object))
-#   #   pf <- parent.frame()
-#   #   sf <- sys.frames()[[1]]
-#   #   tryCatch(eval(call, envir = ff), error = function(e) {
-#   #     tryCatch(eval(call, envir = sf), error = function(e) {
-#   #       eval(call, pf)
-#   #     })
-#   #   })
-#   # }
-#   # else call
-# }

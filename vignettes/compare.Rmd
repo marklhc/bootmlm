@@ -20,13 +20,13 @@ comma <- function(x) format(x, digits = 2, big.mark = ",")
 
 
 ```{r}
-library(tidyverse)
+library(dplyr)
 library(haven)
 library(lme4)
 library(boot)
 library(bootmlm)
 popdata <- haven::read_dta(
-  "https://stats.idre.ucla.edu/stat/stata/examples/mlm_ma_hox/popular.dta")
+  "https://stats.oarc.ucla.edu/stat/stata/examples/mlm_ma_hox/popular.dta")
 ```
 
 For the interest of time, I will select only 30 schools and a few students in 
@@ -34,8 +34,8 @@ each school:
 
 ```{r}
 set.seed(85957)
-pop_sub <- popdata %>% filter(school %in% sample(unique(school), 30)) %>%
-  group_by(school) %>% sample_frac(size = .25) %>% ungroup()
+pop_sub <- popdata |> filter(school %in% sample(unique(school), 30)) |>
+  group_by(school) |> sample_frac(size = .25) |> ungroup()
 ```
 
 To illustrate doing bootstrapping to obtain standard error (*SE*) and confidence
@@ -269,12 +269,12 @@ get_ci <- function(boo_ci, type) {
   paste0("(", paste(comma(tail(boo_ci[[type]][1, ], 2L)), collapse = ", "), ")")
 }
 
-tab <- tibble(boot_type = boo_names, boo = boo_lst, boo_ci = boo_ci_lst) %>%
-  mutate(sd = map_chr(boo, ~ comma(sd(.x$t))), 
-         normal = map_chr(boo_ci, ~ get_ci(.x, "normal")), 
-         basic = map_chr(boo_ci, ~ get_ci(.x, "basic")), 
-         percentile = map_chr(boo_ci, ~ get_ci(.x, "percent")), 
-         bca = map_chr(boo_ci, ~ get_ci(.x, "bca"))) %>%
+tab <- tibble(boot_type = boo_names, boo = boo_lst, boo_ci = boo_ci_lst) |>
+  mutate(sd = sapply(boo, \(x) comma(sd(x$t))), 
+         normal = sapply(boo_ci, \(x) get_ci(x, "normal")), 
+         basic = sapply(boo_ci, \(x) get_ci(x, "basic")), 
+         percentile = sapply(boo_ci, \(x) get_ci(x, "percent")), 
+         bca = sapply(boo_ci, \(x) get_ci(x, "bca"))) |>
   select(-boo, -boo_ci)
 knitr::kable(tab)
 ```

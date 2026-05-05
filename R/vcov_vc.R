@@ -1,39 +1,3 @@
-# vcov_vc <- function(x) {
-#   # http://rstudio-pubs-static.s3.amazonaws.com/28864_dd1f084207d54f5ea67c9d1a9c845d01.html
-#   if (isREML(x)) {
-#     warning("refitting model with ML")
-#     x <- refitML(x)
-#   }
-#   # if (!require("numDeriv")) stop("numDeriv package required")
-#   vc <- lme4::VarCorr(x)
-#   useSc <- attr(vc, "useSc")
-#   dd <- lme4:::devfun2(x, useSc = useSc, signames = FALSE)
-#   vdd <- as.data.frame(vc, order = "lower.tri")
-#   pars <- vdd[, "sdcor"]
-#   npar0 <- length(pars)
-#   if (isGLMM(x)) {
-#     pars <- c(pars, fixef(x))
-#     hh1 <- numDeriv::hessian(dd, pars)
-#     vv2 <- 2 * solve(hh1)
-#     vv2 <- vv2[1:npar0, 1:npar0, drop = FALSE]
-#   } else {
-#     hh1 <- numDeriv::hessian(dd, pars)
-#     vv2 <- 2 * solve(hh1)
-#   }
-#   nms <- apply(vdd[ , 1:3], 1,
-#                function(x) paste(na.omit(x), collapse = "."))
-#   dimnames(vv2) <- list(nms, nms)
-#   return(vv2)
-# }
-
-# theta_to_Lambdat <- function(theta, Js, qs) {
-#   stopifnot(length(Js) == length(qs))
-#   LR <- lme4::vec2mlist(x@theta, n = qs, symm = FALSE)
-#   Ldt_lst <- lapply(seq_along(Js),
-#                     function(i) Matrix::Diagonal(Js[[i]]) %x% LR[[i]])
-#   t(Matrix::bdiag(Ldt_lst))
-# }
-
 #' Asymptotic Covariance Matrix for Random Effects
 #'
 #' Return the asymptotic covariance matrix of random effect standard
@@ -106,7 +70,7 @@ vcov_vc <- function(x, sd_cor = TRUE, print_names = TRUE) {
   vc_pars <- if (sd_cor) vdd[ , "sdcor"] else vdd[ , "vcov"]
   # vc <- from_chol(x@theta, n = qs, s = sigma(x))
   hess <- numDeriv::hessian(dd2, vc_pars)
-  vv <- 2 * Matrix::solve(hess)
+  vv <- 2 * base::solve(hess)
   if (print_names) {
     # prefix <- if (sd_cor) {
     #   c("sd_", "cor_", "sigma")
@@ -145,17 +109,6 @@ make_vcnames <- function(x, sd_cor = TRUE) {
                      paste(prefix[1], var1, "|", grp, sep = ""))))
 }
 
-devfun_sig <- function(sigma, .x) {
-  sigsq <- sigma^2
-  if (lme4::isREML(.x)) {
-    df <- nobs(.x)
-  } else {
-    df <- nobs(.x) - length(.x@beta)
-  }
-  (.x@resp$wrss() + .x@pp$sqrL(1)) / sigsq + df *
-    log(2 * pi * sigsq)
-}
-
 #' Asymptotic Covariance Matrix for Cholesky Factor of Random Effects
 #'
 #' @param x A fitted merMod object from \code{\link[lme4]{lmer}}.
@@ -167,7 +120,7 @@ vcov_theta <- function(x) {
   org_data <- x@frame
   x_devfun <- update(x, data = org_data, devFunOnly = TRUE)
   hess <- numDeriv::hessian(x_devfun, x@theta)
-  2 * Matrix::solve(hess)
+  2 * base::solve(hess)
 }
 
 # theta_to_Lambdat <- function(theta, Js, qs) {
@@ -193,7 +146,7 @@ vcov_theta <- function(x) {
 #'   \eqn{\theta} and \eqn{\sigma}. For \code{devfun_mer2}, a function with
 #'   one argument \code{theta} that profiles out \eqn{\sigma} and only takes
 #'   input of elements for \eqn{\theta}.
-#' @references Bates, D., M\"{a}chler, M., Bolker, B. M., & Walker, S. C.
+#' @references Bates, D., Maechler, M., Bolker, B. M., & Walker, S. C.
 #'   Fitting linear mixed-effects models using lme4. Retrieved from
 #'   \url{https://cran.r-project.org/web/packages/lme4/vignettes/lmer.pdf}
 #' @references Implementation in \pkg{lme4pureR}:
@@ -263,6 +216,7 @@ devfun_mer <- function(x) {
 }
 
 #' @rdname devfun_mer
+#' @export
 devfun_mer2 <- function(x) {
   res <- x@resp
   offset <- res$offset

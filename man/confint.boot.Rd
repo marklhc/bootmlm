@@ -38,7 +38,7 @@ A matrix (or vector) with columns giving lower and upper confidence
 \description{
 This is a wrapper for getting CIs for multiple parameters after running
 \code{\link{bootstrap_mer}}, to be consistent with a similar method for the
-\code{\link[lme4]{bootMber}} class.
+\code{\link[lme4]{bootMer}} class.
 }
 \examples{
 library(lme4)

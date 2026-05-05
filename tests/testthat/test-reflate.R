@@ -1,4 +1,3 @@
-context("Reflating residuals")
 
 library(nlme)
 library(lme4)
@@ -53,8 +52,8 @@ test_that("get_reflate_b_cgr() gives reflated residuals", {
   m2_bvc <- lapply(seq_along(m2_bstar),
                    function(i) tcrossprod(m2_bstar[[i]]) / ngrps(m2)[[i]])
 
-  expect_equivalent(m1_bvc, VarCorr(m1)[[1]])
-  expect_equivalent(m2_bvc, VarCorr(m2))
+  expect_equal(m1_bvc, VarCorr(m1)[[1]], ignore_attr = TRUE)
+  expect_equal(m2_bvc, VarCorr(m2), ignore_attr = TRUE)
 })
 
 test_that("solve_eigen_sqrt() gives correct result", {
@@ -83,12 +82,12 @@ test_that("get_reb_resid are correct for RS", {
   m1_el <- reb_resid$el
   m1_el_s <- reb_resid_s$el
 
-  expect_equal(length(unlist(m1_ml)), length(unlist(m1_ml_s)),
-               length(getME(m1, "b")))
-  expect_equivalent(m1_bvc, VarCorr(m1)[[1]])
+  expect_equal(length(unlist(m1_ml)), length(getME(m1, "b")))
+  expect_equal(length(unlist(m1_ml_s)), length(getME(m1, "b")))
+  expect_equal(m1_bvc, VarCorr(m1)[[1]], ignore_attr = TRUE)
   expect_true(all(diag(tcrossprod(m1_ml_s[[1]])) >
                     diag(tcrossprod(m1_ml[[1]]))))
-  expect_equal(length(unlist(m1_el)), length(unlist(m1_el_s)),
-               length(resid(m1)))
+  expect_equal(length(unlist(m1_el)), length(resid(m1)))
+  expect_equal(length(unlist(m1_el_s)), length(resid(m1)))
   expect_true(all(unlist(m1_el_s) / unlist(m1_el) > 1))
 })

@@ -1,4 +1,3 @@
-context("Empirical influence function")
 
 library(lme4)
 

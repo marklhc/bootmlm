@@ -1,4 +1,3 @@
-context("Resampling")
 
 library(nlme)
 library(lme4)

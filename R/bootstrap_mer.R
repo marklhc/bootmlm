@@ -95,6 +95,7 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
                           .progress = FALSE, verbose = FALSE,
                           ...) {
   type <- match.arg(type)
+  stopifnot( (nsim <- as.integer(nsim[1])) > 0)
   if (type == "parametric") {
     return(lme4::bootMer(x, FUN, nsim, seed = seed, use.u = FALSE,
                          type = "parametric", verbose = FALSE))
@@ -102,10 +103,6 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
     if (!lme4::isLMM(x)) {
       stop("currently only linear mixed model of class `merMod` is supported")
     }
-    # if (!identical(x@optinfo$conv$lme4, list())) {
-    #   stop("The original model has convergence issue")
-    # }
-    stopifnot( (nsim <- as.integer(nsim[1])) > 0)
     if (.progress) {
       pb <- txtProgressBar(style = 3)
     }
@@ -233,7 +230,9 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
       warn_lst <- NULL
     }
     msg_tab <- table(c(warn_lst, msg_lst))
-    message(paste(msg_tab, names(msg_tab), collapse = "\n"))
+    if (length(msg_tab) > 0) {
+      message(paste(msg_tab, names(msg_tab), collapse = "\n"))
+    }
 
     # Number of failed bootstrap
 

@@ -1,4 +1,3 @@
-context("Residual (CGR) bootstrap")
 
 library(nlme)
 library(lme4)
@@ -32,7 +31,8 @@ test_that("random intercept with residual (CGR) bootstrap", {
 
   expect_s3_class(boo, "boot")
   expect_equal(boo$t0, mySumm_m)
-  expect_equal(nrow(boo$t), boo$R, NSIM)
+  expect_equal(nrow(boo$t), NSIM)
+  expect_equal(boo$R, NSIM)
   expect_equal(ncol(boo$t), length(mySumm_m))
 })
 
@@ -42,7 +42,8 @@ test_that("random slope with residual (CGR) bootstrap", {
 
   expect_s3_class(boo, "boot")
   expect_equal(boo$t0, mySumm_m)
-  expect_equal(nrow(boo$t), boo$R, NSIM)
+  expect_equal(nrow(boo$t), NSIM)
+  expect_equal(boo$R, NSIM)
   expect_equal(ncol(boo$t), length(mySumm_m))
 })
 
@@ -52,7 +53,8 @@ test_that("cross-classified with residual (CGR) bootstrap", {
 
   expect_s3_class(boo, "boot")
   expect_equal(boo$t0, mySumm_m)
-  expect_equal(nrow(boo$t), boo$R, NSIM)
+  expect_equal(nrow(boo$t), NSIM)
+  expect_equal(boo$R, NSIM)
   expect_equal(ncol(boo$t), length(mySumm_m))
 })
 
@@ -62,7 +64,8 @@ test_that("interaction with residual (CGR) bootstrap", {
 
   expect_s3_class(boo, "boot")
   expect_equal(boo$t0, mySumm_m)
-  expect_equal(nrow(boo$t), boo$R, NSIM)
+  expect_equal(nrow(boo$t), NSIM)
+  expect_equal(boo$R, NSIM)
   expect_equal(ncol(boo$t), length(mySumm_m))
 })
 
@@ -71,7 +74,7 @@ test_that("interaction with residual (CGR) bootstrap", {
 
 test_that("random intercept with residual (CGR) bootstrap CI", {
   boo <- boo1
-  ci_idx <- sample.int(3, size = 1)
+  ci_idx <- 1L
   boo_ci <- boot.ci(boo, index = ci_idx, type = c("norm", "basic", "perc"))
   boo_bca <- boot.ci(boo, index = ci_idx, type = "bca",
                      L = empinf_mer(m1, mySumm, ci_idx))
@@ -88,7 +91,7 @@ test_that("random intercept with residual (CGR) bootstrap CI", {
 
 test_that("random slope with residual (CGR) bootstrap CI", {
   boo <- boo2
-  ci_idx <- sample.int(3, size = 1)
+  ci_idx <- 1L
   boo_ci <- boot.ci(boo, index = ci_idx, type = c("norm", "basic", "perc"))
   boo_bca <- boot.ci(boo, index = ci_idx, type = "bca",
                      L = empinf_mer(m2, mySumm, ci_idx))
@@ -105,7 +108,7 @@ test_that("random slope with residual (CGR) bootstrap CI", {
 
 test_that("cross-classified with residual (CGR) bootstrap CI", {
   boo <- boo3
-  ci_idx <- sample.int(3, size = 1)
+  ci_idx <- 1L
   boo_ci <- boot.ci(boo, index = ci_idx, type = c("norm", "basic", "perc"))
 
   expect_output(str(boo_ci), "$ normal", fixed = TRUE)
@@ -120,7 +123,7 @@ test_that("cross-classified with residual (CGR) bootstrap CI", {
 
 test_that("interaction with residual (CGR) bootstrap CI", {
   boo <- boo4
-  ci_idx <- sample.int(5, size = 1)
+  ci_idx <- 1L
   boo_ci <- boot.ci(boo, index = ci_idx, type = c("norm", "basic", "perc"))
   boo_bca <- boot.ci(boo, index = ci_idx, type = "bca",
                      L = empinf_mer(m4, mySumm, ci_idx))

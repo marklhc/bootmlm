@@ -1,5 +1,3 @@
-context("Case bootstrap")
-
 library(nlme)
 library(lme4)
 library(boot)
@@ -36,7 +34,8 @@ test_that("random intercept with case bootstrap", {
 
   expect_s3_class(boo, "boot")
   expect_equal(boo$t0, mySumm_m)
-  expect_equal(nrow(boo$t), boo$R, NSIM)
+  expect_equal(nrow(boo$t), NSIM)
+  expect_equal(boo$R, NSIM)
   expect_equal(ncol(boo$t), length(mySumm_m))
   expect_identical(boo1$t, boo1r$t)
   expect_false(all(boo1$t == boo1c$t))
@@ -48,7 +47,8 @@ test_that("random slope with case bootstrap", {
 
   expect_s3_class(boo, "boot")
   expect_equal(boo$t0, mySumm_m)
-  expect_equal(nrow(boo$t), boo$R, NSIM)
+  expect_equal(nrow(boo$t), NSIM)
+  expect_equal(boo$R, NSIM)
   expect_equal(ncol(boo$t), length(mySumm_m))
 })
 
@@ -63,7 +63,8 @@ test_that("interaction with case bootstrap", {
 
   expect_s3_class(boo, "boot")
   expect_equal(boo$t0, mySumm_m)
-  expect_equal(nrow(boo$t), boo$R, NSIM)
+  expect_equal(nrow(boo$t), NSIM)
+  expect_equal(boo$R, NSIM)
   expect_equal(ncol(boo$t), length(mySumm_m))
 })
 
@@ -72,7 +73,7 @@ test_that("interaction with case bootstrap", {
 
 test_that("random intercept with case bootstrap CI", {
   boo <- boo1
-  ci_idx <- sample.int(3, size = 1)
+  ci_idx <- 1L
   boo_ci <- boot.ci(boo, index = ci_idx, type = c("norm", "basic", "perc"))
   boo_bca <- boot.ci(boo, index = ci_idx, type = "bca",
                      L = empinf_mer(m1, mySumm, ci_idx))
@@ -89,7 +90,7 @@ test_that("random intercept with case bootstrap CI", {
 
 test_that("random slope with case bootstrap CI", {
   boo <- boo2
-  ci_idx <- sample.int(3, size = 1)
+  ci_idx <- 1L
   boo_ci <- boot.ci(boo, index = ci_idx, type = c("norm", "basic", "perc"))
   boo_bca <- boot.ci(boo, index = ci_idx, type = "bca",
                      L = empinf_mer(m2, mySumm, ci_idx))
@@ -106,7 +107,7 @@ test_that("random slope with case bootstrap CI", {
 
 test_that("interaction with case bootstrap CI", {
   boo <- boo4
-  ci_idx <- sample.int(5, size = 1)
+  ci_idx <- 1L
   boo_ci <- boot.ci(boo, index = ci_idx, type = c("norm", "basic", "perc"))
   boo_bca <- boot.ci(boo, index = ci_idx, type = "bca",
                      L = empinf_mer(m4, mySumm, ci_idx))
