@@ -8,7 +8,7 @@ Description: An implementation of functions for bootstrapping with multilevel
     data and models (and mixed-effect models). It implements multiple 
     bootstrap methods under the parametric, residual, and case bootstrap 
     categories. Currently it supports fitted objects from the lme4 package.
-URL: https://github.com/marklhc/bootmlm
+URL: https://github.com/marklhc/bootmlm, https://marklhc.github.io/bootmlm/
 BugReports: https://github.com/marklhc/bootmlm/issues
 Depends: R (>= 4.1.0)
 Imports:
