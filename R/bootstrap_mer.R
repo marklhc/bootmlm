@@ -136,7 +136,11 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
         length_t0 <- length(t0)
         add_cond <- function(cnd) {
           conds <<- append(conds, list(cnd))
-          rlang::cnd_muffle(cnd)
+          if (inherits(cnd, "warning")) {
+            invokeRestart("muffleWarning")
+          } else if (inherits(cnd, "message")) {
+            invokeRestart("muffleMessage")
+          }
         }
         function(i) {
           ret <- tryCatch(
@@ -169,17 +173,16 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
         length_t0 <- length(t0)
         add_cond <- function(cnd) {
           conds <<- append(conds, list(cnd))
-          rlang::cnd_muffle(cnd)
+          if (inherits(cnd, "warning")) {
+            invokeRestart("muffleWarning")
+          } else if (inherits(cnd, "message")) {
+            invokeRestart("muffleMessage")
+          }
         }
         # use_REML <- lme4::isREML(x)
         function(i) {
           df_i <- ss[[i]]
           ret <- tryCatch({
-            # FUN(lmer(formula_x, data = df_i, REML = use_REML,
-            #          control = lmerControl(calc.derivs = FALSE))),
-            # Need:
-            # Function to parse messages/warnings (mainsim)
-            # Functions to print messages/warnings as a summary (bootMer)
             withCallingHandlers(message = add_cond,
                                 warning = add_cond,
                                 {
@@ -231,7 +234,8 @@ bootstrap_mer <- function(x, FUN, nsim = 1, seed = NULL,
     }
     msg_tab <- table(c(warn_lst, msg_lst))
     if (length(msg_tab) > 0) {
-      message(paste(msg_tab, names(msg_tab), collapse = "\n"))
+      msg_text <- sprintf("%d occurrence(s) of: %s", msg_tab, names(msg_tab))
+      message(paste(msg_text, collapse = "\n"))
     }
 
     # Number of failed bootstrap

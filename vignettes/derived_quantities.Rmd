@@ -9,24 +9,27 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-## Downloading the Data
+## Data
 
-Here I use the example data in the book by Hox (2010, p. 17). 
+Here I use a synthetic dataset (`pop_syn`) bundled with the package, which
+mimics the structure of the example data in Hox (2010, p. 17). The synthetic
+data was generated from parameters estimated from the original *popular* dataset.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 comma <- function(x) format(x, digits = 2, big.mark = ",")
+
+# Load the pre-computed heavy bootstrap objects to save CRAN build time.
+# These were generated locally and saved to the vignettes directory.
+load("precomputed_derived.rda")
 ```
 
 
 ```{r}
 library(dplyr)
-library(haven)
 library(lme4)
 library(boot)
 library(bootmlm)
-popdata <- haven::read_dta(
-  "https://stats.oarc.ucla.edu/stat/stata/examples/mlm_ma_hox/popular.dta")
 ```
 
 For the interest of time, I will select only 20 schools and a few students in 
@@ -34,7 +37,7 @@ each school:
 
 ```{r}
 set.seed(85957)
-pop_sub <- popdata |> filter(school %in% sample(unique(school), 20)) |>
+pop_sub <- pop_syn |> filter(school %in% sample(unique(school), 20)) |>
   group_by(school) |> sample_frac(size = .25) |> ungroup()
 ```
 
@@ -48,8 +51,10 @@ summary(m0)
 ```
 
 The intraclass correlation is defined as
-$$\rho = \frac{\tau^2}{\tau^2 + \sigma^2} = \frac{1}{1 + \sigma^2 / \tau^2} 
-  = \frac{1}{1 + \theta^{-2}},$$
+$$
+\rho = \frac{\tau^2}{\tau^2 + \sigma^2} = \frac{1}{1 + \sigma^2 / \tau^2} 
+  = \frac{1}{1 + \theta^{-2}},
+$$
 where $\theta = \tau / \sigma$ is the relative cholesky factor for the
 random intercept term used in `lme4`. Therefore, we can estimate the ICC as:
 
@@ -81,7 +86,7 @@ icc0 + c(-2, 2) * sqrt(icc_avar)
 
 ## Bootstrap-$t$ CI
 
-```{r, cache=TRUE, cache.vars="boo"}
+```{r}
 icc <- function(x) {
   th_est <- x@theta
   est <- 1 / (1 + th_est^(-2))
@@ -91,9 +96,18 @@ icc <- function(x) {
   c(est, var)
 }
 icc(m0)
+```
+
+```{r, eval=FALSE}
+# These heavy computations are not run live on CRAN, but you can run them locally.
 boo <- bootstrap_mer(m0, icc, 999L, type = "case")
+
 # Influence values for BCa
 inf_val <- empinf_mer(m0, icc, index = 1)
+```
+
+```{r}
+# boo and inf_val are pre-loaded in this vignette
 boot::boot.ci(boo, L = inf_val)
 ```
 
@@ -104,7 +118,9 @@ a potentially better approach to construct a confidence interval for ICC is
 to first transform it so that the sampling distribution is closer to normal. 
 As stated in Ukoumunne, Davison, Gulliford, and Chinn (2003), one can use 
 apply a transformation:
-$$h(t) = \log(\frac{\hat \rho}{1 - \hat \rho})$$
+$$
+h(t) = \log(\frac{\hat \rho}{1 - \hat \rho})
+$$
 
 You can compare the distribution before and after transformation:
 
@@ -112,7 +128,6 @@ You can compare the distribution before and after transformation:
 hist(boo$t[ , 1])
 hist(-log(1 / boo$t[ , 1] - 1))
 ```
-
 
 One can obtain the CI on the transformed scale, and then scale it back to 
 the original ICC scale:
@@ -123,4 +138,4 @@ boot::boot.ci(boo, L = inf_val, h = qlogis,
               hinv = plogis)
 ```
 
-Note: Percentile and BCa intervals are invariant to 1-1 transformation. 
+Note: Percentile and BCa intervals are invariant to 1-1 transformation.

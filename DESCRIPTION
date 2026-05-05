@@ -17,7 +17,6 @@ Imports:
     Matrix (>= 1.2-11), 
     methods, 
     numDeriv,
-    rlang,
     stats, 
     utils
 Suggests:
@@ -29,7 +28,9 @@ Suggests:
     haven, 
     msm,
     dplyr,
+    purrr,
     ggplot2
+LazyData: true
 Config/testthat/edition: 3
 License: GPL-3
 Encoding: UTF-8

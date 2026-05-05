@@ -9,24 +9,26 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-## Downloading the Data
+## Data
 
-Here I use the example data in the book by Hox (2010, p. 17). 
+Here I use a synthetic dataset (`pop_syn`) bundled with the package, which
+mimics the structure of the example data in Hox (2010, p. 17). The synthetic
+data was generated from parameters estimated from the original *popular* dataset.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 comma <- function(x) format(x, digits = 2, big.mark = ",")
-```
 
+# Load the pre-computed heavy bootstrap objects to save CRAN build time.
+# These were generated locally and saved to the vignettes directory.
+load("precomputed_bootstraps.rda")
+```
 
 ```{r}
 library(dplyr)
-library(haven)
 library(lme4)
 library(boot)
 library(bootmlm)
-popdata <- haven::read_dta(
-  "https://stats.oarc.ucla.edu/stat/stata/examples/mlm_ma_hox/popular.dta")
 ```
 
 For the interest of time, I will select only 30 schools and a few students in 
@@ -34,7 +36,7 @@ each school:
 
 ```{r}
 set.seed(85957)
-pop_sub <- popdata |> filter(school %in% sample(unique(school), 30)) |>
+pop_sub <- pop_syn |> filter(school %in% sample(unique(school), 30)) |>
   group_by(school) |> sample_frac(size = .25) |> ungroup()
 ```
 
@@ -48,8 +50,10 @@ summary(m0)
 ```
 
 The intraclass correlation is defined as
-$$\rho = \frac{\tau}{\tau + \sigma^2} = \frac{1}{1 + \sigma^2 / \tau} 
-  = \frac{1}{1 + \theta^{-2}},$$
+$$
+\rho = \frac{\tau}{\tau + \sigma^2} = \frac{1}{1 + \sigma^2 / \tau} 
+  = \frac{1}{1 + \theta^{-2}},
+$$
 where $\theta = \sqrt{\tau} / \sigma$ is the relative cholesky factor for the
 random intercept term used in `lme4`. Therefore, we can estimate the ICC as:
 
@@ -78,9 +82,15 @@ function. It's usually recommended to have a large number of bootstrap samples
 ($R$), especially for CIs with higher confidence levels. For illustrative 
 purpose I will use $R = 999$, but in general 1,999 or more is recommended
 
-```{r, cache=TRUE}
+```{r, eval=FALSE}
 system.time(
-  boo_par <- bootstrap_mer(m0, icc, nsim = 999L, type = "parametric"))
+  boo_par <- bootstrap_mer(m0, icc, nsim = 999L, type = "parametric")
+)
+boo_par
+```
+
+```{r, echo=FALSE}
+# Outputting the pre-computed object
 boo_par
 ```
 
@@ -117,9 +127,14 @@ The first residual bootstrap rescale $\tilde u$ and $\tilde e$ so that their
 sampling variabilities match those of $u$ and $e$ as implied by the model 
 estimates. This can be obtained by 
 
-```{r, cache=TRUE}
+```{r, eval=FALSE}
 system.time(
-  boo_res <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual"))
+  boo_res <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual")
+)
+boo_res
+```
+
+```{r, echo=FALSE}
 boo_res
 ```
 
@@ -130,9 +145,14 @@ The second method, CGR, rescale the sample covariance matrix of the
 *realized values* of the residuals to match the model-implied variance 
 components. This can be obtained by 
 
-```{r, cache=TRUE}
+```{r, eval=FALSE}
 system.time(
-  boo_cgr <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual_cgr"))
+  boo_cgr <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual_cgr")
+)
+boo_cgr
+```
+
+```{r, echo=FALSE}
 boo_cgr
 ```
 
@@ -148,15 +168,23 @@ of $\hat r_{ij}$ is not $\boldsymbol{V}$, I also provide the option
 `corrected_trans = TRUE` to do the transformation using the theoretically
 sampling variability of $\hat r_{ij}$.
 
-```{r, cache=TRUE}
+```{r, eval=FALSE}
 # Transformation according to V
 system.time(
-  boo_tra <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual_trans"))
+  boo_tra <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual_trans")
+)
 boo_tra
+
 # Transformation according to the sampling variance of r
 system.time(
   boo_trac <- bootstrap_mer(m0, icc, nsim = 999L, type = "residual_trans", 
-                            corrected_trans = TRUE))
+                            corrected_trans = TRUE)
+)
+boo_trac
+```
+
+```{r, echo=FALSE}
+boo_tra
 boo_trac
 ```
 
@@ -170,21 +198,25 @@ intervals via the `boot.ci()` function from the `boot` package, with the
 addition of the bias-corrected and accelarted bootstrap (BCa). We can use the
 following function:
 
-```{r, cache=TRUE}
+```{r}
 # First need to compute the influence values
 inf_val <- empinf_mer(m0, icc, index = 1)
+
 # Residual bootstrap
 boo_res_ci <- boot::boot.ci(boo_res, type = c("norm", "basic", "perc", "bca"), 
                             index = 1L, L = inf_val)
 boo_res_ci
+
 # CGR
 boo_cgr_ci <- boot::boot.ci(boo_cgr, type = c("norm", "basic", "perc", "bca"), 
                             index = 1L, L = inf_val)
 boo_cgr_ci
+
 # Transformational (no correction)
 boo_tra_ci <- boot::boot.ci(boo_tra, type = c("norm", "basic", "perc", "bca"), 
                             index = 1L, L = inf_val)
 boo_tra_ci
+
 # Transformational (with correction)
 boo_trac_ci <- boot::boot.ci(boo_trac, type = c("norm", "basic", "perc", "bca"), 
                              index = 1L, L = inf_val)
@@ -193,23 +225,32 @@ boo_trac_ci
 
 ## Random Effect Block Bootstrap
 
-```{r, cache=TRUE}
+```{r, eval=FALSE}
 system.time(
-  boo_reb <- bootstrap_mer(m0, icc, nsim = 999L, type = "reb"))
+  boo_reb <- bootstrap_mer(m0, icc, nsim = 999L, type = "reb")
+)
 boo_reb
+
 system.time(
   boo_rebs <- bootstrap_mer(m0, icc, nsim = 999L, type = "reb", 
-                            reb_scale = TRUE))
+                            reb_scale = TRUE)
+)
+boo_rebs
+```
+
+```{r, echo=FALSE}
+boo_reb
 boo_rebs
 ```
 
 ### Confidence interval
 
-```{r, cache=TRUE}
+```{r}
 # Only sampling clusters
 boo_reb_ci <- boot::boot.ci(boo_reb, type = c("norm", "basic", "perc", "bca"), 
                             index = 1L, L = inf_val)
 boo_reb_ci
+
 # Transformational (with correction)
 boo_rebs_ci <- boot::boot.ci(boo_rebs, type = c("norm", "basic", "perc", "bca"), 
                              index = 1L, L = inf_val)
@@ -225,13 +266,21 @@ clusters. Optionally, we can then resample the cases within each cluster
 residual bootstrap methods, currently `bootmlm` only support the case bootstrap 
 with two levels. 
 
-```{r, cache=TRUE}
+```{r, eval=FALSE}
 system.time(
-  boo_cas <- bootstrap_mer(m0, icc, nsim = 999L, type = "case"))
+  boo_cas <- bootstrap_mer(m0, icc, nsim = 999L, type = "case")
+)
 boo_cas
+
 system.time(
   boo_cas1 <- bootstrap_mer(m0, icc, nsim = 999L, type = "case", 
-                            lv1_resample = TRUE))
+                            lv1_resample = TRUE)
+)
+boo_cas1
+```
+
+```{r, echo=FALSE}
+boo_cas
 boo_cas1
 ```
 
@@ -243,11 +292,12 @@ clusters) and `r sd(boo_cas1$t)` (sampling also cases) with case bootstrap.
 With case bootstrap the supported CIs are: normal, basic, and percentile, and 
 BCa. We can use the following function:
 
-```{r, cache=TRUE}
+```{r}
 # Only sampling clusters
 boo_cas_ci <- boot::boot.ci(boo_cas, type = c("norm", "basic", "perc", "bca"), 
                             index = 1L, L = inf_val)
 boo_cas_ci
+
 # Transformational (with correction)
 boo_cas1_ci <- boot::boot.ci(boo_cas1, type = c("norm", "basic", "perc", "bca"), 
                              index = 1L, L = inf_val)
@@ -265,6 +315,7 @@ boo_lst <- list(boo_par, boo_res, boo_cgr, boo_tra, boo_trac,
 boo_ci_lst <- list(boo_par_ci, boo_res_ci, boo_cgr_ci, boo_tra_ci, 
                    boo_trac_ci, boo_reb_ci, boo_rebs_ci, boo_cas_ci, 
                    boo_cas1_ci)
+
 get_ci <- function(boo_ci, type) {
   paste0("(", paste(comma(tail(boo_ci[[type]][1, ], 2L)), collapse = ", "), ")")
 }
@@ -276,5 +327,6 @@ tab <- tibble(boot_type = boo_names, boo = boo_lst, boo_ci = boo_ci_lst) |>
          percentile = sapply(boo_ci, \(x) get_ci(x, "percent")), 
          bca = sapply(boo_ci, \(x) get_ci(x, "bca"))) |>
   select(-boo, -boo_ci)
+
 knitr::kable(tab)
 ```

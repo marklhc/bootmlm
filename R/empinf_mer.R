@@ -45,7 +45,8 @@ empinf_mer <- function(x, FUN, index = 1) {
   for (j in seq_along(th_noj)) {
     i <- which(gp == gp_lv[j])
     # m <- lmer(formula_x, data = org_data[-i, ])
-    m_call <- update(x, data = org_data[-i, ], evaluate = FALSE)
+    m_call <- update(x, formula_x, data = org_data[-i, ], evaluate = FALSE)
+    m_call$start <- list(theta = x@theta)
     m <- eval(m_call)
     th_noj[j] <- FUN(m)[index]
   }
@@ -73,7 +74,8 @@ empinf_merm <- function(x, FUN) {
   th_noj <- matrix(NA, nrow = J, ncol = length(th_n))
   for (j in seq_len(J)) {
     i <- which(gp == gp_lv[j])
-    m_call <- update(x, data = org_data[-i, ], evaluate = FALSE)
+    m_call <- update(x, formula_x, data = org_data[-i, ], evaluate = FALSE)
+    m_call$start <- list(theta = x@theta)
     m <- eval(m_call)
     th_noj[j, ] <- FUN(m)
   }
